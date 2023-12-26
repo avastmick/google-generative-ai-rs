@@ -1,0 +1,20 @@
+[package]
+name = "google-gemini-api-rs"
+version = "0.1.0"
+edition = "2021"
+authors = ["Mick Clarke <avastmick@outlook.com>"]
+license = "MIT"
+description = "An unofficial rust-based client library to interact with the Google Gemini generative AI API"
+repository = "https://github.com/avastmick/google-gemini-api-rs"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies.serde]
+version = "1.0.193"
+features = ["derive"]
+default-features = false
+
+[dependencies.serde_json]
+version = "1.0.108"
+features = ["std"]
+default-features = false
