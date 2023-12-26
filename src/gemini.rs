@@ -211,7 +211,8 @@ pub mod response {
     }
     #[derive(Debug, Clone, Deserialize)]
     pub struct Content {
-        pub parts: Option<Vec<Part>>,
+        #[serde(default)]
+        pub parts: Vec<Part>,
         pub role: Role,
     }
     #[derive(Debug, Clone, Deserialize)]
@@ -228,6 +229,8 @@ pub mod response {
     pub struct SafetyRating {
         pub category: HarmCategory,
         pub probability: HarmProbability,
+        #[serde(default)]
+        pub blocked: bool,
     }
     #[derive(Debug, Clone, Deserialize)]
     #[serde(rename_all = "lowercase")]
@@ -236,74 +239,17 @@ pub mod response {
         Model,
     }
 
+    /// The reason why the model stopped generating tokens. If empty, the model has not stopped generating the tokens.
     #[derive(Debug, Clone, Deserialize)]
     #[serde(rename_all = "UPPERCASE")]
     pub enum FinishReason {
-        FinishReasonUnspecified,
-        FinishReasonLength,
-        FinishReasonStopSequence,
-        FinishReasonMaxTokens,
-        FinishReasonTimeout,
-        FinishReasonPromptSuggestion,
-        FinishReasonEos,
-        FinishReasonNumCandidates,
-        FinishReasonUserInitiated,
-        FinishReasonMaxChars,
-        FinishReasonMaxExamples,
-        FinishReasonMaxTime,
-        FinishReasonMaxTokensPerExample,
-        FinishReasonMaxTokensPerPass,
-        FinishReasonMaxTokensTotal,
-        FinishReasonMaxTokensPerResponse,
-        FinishReasonMaxTokensPerPrompt,
-        FinishReasonMaxTokensPerInput,
-        FinishReasonMaxTokensPerInputPrefix,
-        FinishReasonMaxTokensPerInputSuffix,
-        FinishReasonMaxTokensPerInputPass,
-        FinishReasonMaxTokensPerInputTotal,
-        FinishReasonMaxTokensPerInputResponse,
-        FinishReasonMaxTokensPerInputPrompt,
-        FinishReasonMaxCharsPerExample,
-        FinishReasonMaxCharsPerPass,
-        FinishReasonMaxCharsTotal,
-        FinishReasonMaxCharsPerResponse,
-        FinishReasonMaxCharsPerPrompt,
-        FinishReasonMaxCharsPerInput,
-        FinishReasonMaxCharsPerInputPrefix,
-        FinishReasonMaxCharsPerInputSuffix,
-        FinishReasonMaxCharsPerInputPass,
-        FinishReasonMaxCharsPerInputTotal,
-        FinishReasonMaxCharsPerInputResponse,
-        FinishReasonMaxCharsPerInputPrompt,
-        FinishReasonMaxExamplesPerPass,
-        FinishReasonMaxExamplesTotal,
-        FinishReasonMaxExamplesPerResponse,
-        FinishReasonMaxExamplesPerPrompt,
-        FinishReasonMaxExamplesPerInput,
-        FinishReasonMaxExamplesPerInputPrefix,
-        FinishReasonMaxExamplesPerInputSuffix,
-        FinishReasonMaxExamplesPerInputPass,
-        FinishReasonMaxExamplesPerInputTotal,
-        FinishReasonMaxExamplesPerInputResponse,
-        FinishReasonMaxExamplesPerInputPrompt,
-        FinishReasonMaxTimePerPass,
-        FinishReasonMaxTimeTotal,
-        FinishReasonMaxTimePerResponse,
-        FinishReasonMaxTimePerPrompt,
-        FinishReasonMaxTimePerInput,
-        FinishReasonMaxTimePerInputPrefix,
-        FinishReasonMaxTimePerInputSuffix,
-        FinishReasonMaxTimePerInputPass,
-        FinishReasonMaxTimePerInputTotal,
-        FinishReasonMaxTimePerInputResponse,
-        FinishReasonMaxTimePerInputPrompt,
-        FinishReasonMaxPasses,
-        FinishReasonMaxPassesPerResponse,
-        FinishReasonMaxPassesPerPrompt,
-        FinishReasonMaxPassesPerInput,
-        FinishReasonMaxPass,
+        FinishReasonUnspecified, // The finish reason is unspecified.
+        FinishReasonStop,        // Natural stop point of the model or provided stop sequence.
+        FinishReasonMaxTokens, // The maximum number of tokens as specified in the request was reached.
+        FinishReasonSafety, // The token generation was stopped as the response was flagged for safety reasons. Note that [`Candidate`].content is empty if content filters block the output.
+        FinishReasonRecitation, // The token generation was stopped as the response was flagged for unauthorized citations.
+        FinishReasonOther,      // All other reasons that stopped the token
     }
-
     #[cfg(test)]
     mod tests {}
 }
@@ -312,30 +258,32 @@ pub mod response {
 pub mod safety {
     use serde::{Deserialize, Serialize};
 
+    /// The safety category to configure a threshold for.
     #[derive(Debug, Clone, Deserialize, Serialize)]
     #[serde(rename_all = "UPPERCASE")]
     pub enum HarmCategory {
-        HarmCategoryUnspecified,
-        HarmCategorySevere,
-        HarmCategorySevereRecurring,
-        HarmCategorySeverePersistent,
-        HarmCategoryModerate,
-        HarmCategoryModerateRecurring,
-        HarmCategoryModeratePersistent,
-        HarmCategoryMild,
-        HarmCategoryMildRecurring,
-        HarmCategoryMildPersistent,
+        HarmCategorySexuallyExplicit,
+        HarmCategoryHateSpeech,
+        HarmCategoryHarassment,
+        HarmCategoryDangerousContent,
     }
+    /// For a request: the safety category to configure a threshold for. For a response: the harm probability levels in the content.
     #[derive(Debug, Clone, Deserialize, Serialize)]
-    pub struct HarmProbability {
-        pub value: f32,
+    #[serde(rename_all = "UPPERCASE")]
+    pub enum HarmProbability {
+        HarmProbabilityUnspecified,
+        Negligible,
+        Low,
+        Medium,
+        High,
     }
+    /// The threshold for blocking responses that could belong to the specified safety category based on probability.
     #[derive(Debug, Clone, Deserialize, Serialize)]
     #[serde(rename_all = "UPPERCASE")]
     pub enum HarmBlockThreshold {
-        HarmBlockThresholdUnspecified,
-        HarmBlockThresholdLow,
-        HarmBlockThresholdMedium,
-        HarmBlockThresholdHigh,
+        BlockNone,
+        BlockLowAndAbove,
+        BlockMedAndAbove,
+        BlockHighAndAbove,
     }
 }
