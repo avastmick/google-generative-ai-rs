@@ -10,7 +10,7 @@ We expect all contributors to abide by our [Code of Conduct](CODE_OF_CONDUCT.md)
 
 ## Reporting Bugs
 
-If you encounter a bug while using cosmonaut-code, please [open an issue](https://github.com/<username>/<repository>/issues/new) and provide as much information as possible, including:
+If you encounter a bug while using cosmonaut-code, please [open an issue](https://github.com/avastmick/google-generative-ai-api-rs/issues/new) and provide as much information as possible, including:
 
 - A clear and descriptive title
 - A detailed description of the bug and the expected behavior
@@ -19,7 +19,7 @@ If you encounter a bug while using cosmonaut-code, please [open an issue](https:
 
 ## Suggesting Features
 
-If you have an idea for a new feature or improvement, please [open an issue](https://github.com/<username>/<repository>/issues/new) and provide as much information as possible, including:
+If you have an idea for a new feature or improvement, please [open an issue](https://github.com/avastmick/google-generative-ai-api-rs/issues/new) and provide as much information as possible, including:
 
 - A clear and descriptive title
 - A detailed description of the proposed feature or improvement
