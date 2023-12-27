@@ -1,4 +1,29 @@
 //! Handles the text interaction with the API
+use core::fmt;
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum Model {
+    #[default]
+    GeminiPro,
+    GeminiProVision,
+}
+impl fmt::Display for Model {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Model::GeminiPro => write!(f, "gemini-pro"),
+            Model::GeminiProVision => write!(f, "gemini-pro-vision"),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Role {
+    User,
+    Model,
+}
 
 /// The request format follows the following structure:
 /// ```json
@@ -68,7 +93,28 @@
 pub mod request {
     use serde::Serialize;
 
-    use super::safety::{HarmBlockThreshold, HarmCategory};
+    use super::{
+        safety::{HarmBlockThreshold, HarmCategory},
+        Role,
+    };
+
+    #[derive(Debug, Clone, Serialize)]
+    pub struct Request {
+        pub contents: Vec<Content>,
+        #[serde(default)]
+        pub tools: Vec<Tools>,
+        #[serde(default, rename = "safetySettings")]
+        pub safety_settings: Vec<SafetySettings>,
+        #[serde(default, rename = "generationConfig")]
+        pub generation_config: GenerationConfig,
+    }
+
+    #[derive(Debug, Clone, Serialize)]
+    pub struct Content {
+        #[serde(default)]
+        pub parts: Vec<Part>,
+        pub role: Role,
+    }
 
     #[derive(Debug, Clone, Serialize)]
     pub struct Part {
@@ -191,11 +237,13 @@ pub mod request {
 pub mod response {
     use serde::Deserialize;
 
-    use super::safety::{HarmCategory, HarmProbability};
+    use super::{
+        safety::{HarmCategory, HarmProbability},
+        Role,
+    };
 
     #[derive(Debug, Clone, Deserialize)]
     pub struct TextResponse {
-        pub model: Option<String>,
         pub candidates: Vec<Candidate>,
         #[serde(rename = "promptFeedback")]
         pub prompt_feedback: Option<PromptFeedback>,
@@ -231,12 +279,6 @@ pub mod response {
         pub probability: HarmProbability,
         #[serde(default)]
         pub blocked: bool,
-    }
-    #[derive(Debug, Clone, Deserialize)]
-    #[serde(rename_all = "lowercase")]
-    pub enum Role {
-        User,
-        Model,
     }
 
     /// The reason why the model stopped generating tokens. If empty, the model has not stopped generating the tokens.
