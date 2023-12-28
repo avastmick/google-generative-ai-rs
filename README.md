@@ -1,8 +1,12 @@
-# google-generative-ai-rs
+# Google Generative AI API client (unofficial)
 
 An unofficial rust-based client library to interact with the Google generative AI API.
 
-⚠️ initial working out; it will change very frequently. ⚠️
+The goals is to emulate the [Google AI Python SDK](https://github.com/google/generative-ai-python), but in Rust.
+
+Initial focus will be on the [newer Gemini models](https://blog.google/technology/ai/google-gemini-ai/), but the more stable and mature models will hopefull be also supported.
+
+⚠️ Warning: initial working out; it will change very frequently. ⚠️
 
 ## Contributing
 
@@ -19,7 +23,7 @@ Status today is: *"Just starting, but some things do work."*
 ## Outline tasks
 
 - [X] Create request and response structs
-- [X] Create the public API happy path
+- [X] Create the public API happy path for Gemini
 - [ ] Create the private API happy path
 - [X] Create basic error handling
 - [ ] Add get requests for API queries
