@@ -11,7 +11,7 @@ use google_generative_ai_rs::v1::{
 /// Simple text request using the public API and an API key for authn
 /// To run:
 /// ```
-/// API_KEY=[YOUR_API_KEY] cargo run --package google-generative-ai-api-rs  --example text_request
+/// API_KEY=[YOUR_API_KEY] cargo run --package google-generative-ai-rs  --example text_request
 /// ``
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
