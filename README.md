@@ -2,17 +2,17 @@
 
 An unofficial rust-based client library to interact with the Google generative AI API.
 
-The goals is to emulate the [Google AI Python SDK](https://github.com/google/generative-ai-python), but in Rust.
+The goal is to emulate the [Google AI Python SDK](https://github.com/google/generative-ai-python), but in Rust.
 
-Initial focus will be on the [newer Gemini models](https://blog.google/technology/ai/google-gemini-ai/), but the more stable and mature models will hopefull be also supported.
+The initial focus will be on the [newer Gemini models](https://blog.google/technology/ai/google-gemini-ai/), but the more stable and mature models will hopefully also be supported soon.
 
 ⚠️ Warning: initial working out; it will change very frequently. ⚠️
 
 ## Contributing
 
-Yes please!! Create a fork and branch, make your contribution, raise a PR.
+Yes, please!! Create a fork and branch, make your contribution, and raise a PR.
 
-Please, see [contributing](CONTRIBUTING.md) for the rules, they are standard though.
+Please see [contributing](CONTRIBUTING.md) for the rules; they are standard though.
 
 ## Work status
 
