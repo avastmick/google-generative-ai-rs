@@ -1,12 +1,12 @@
 # Contributing to cosmonaut-code
 
-Whether you want to report a bug, suggest a new feature, or contribute code, we appreciate your input.
+Whether you want to report a bug, suggest a new feature, or contribute code, I appreciate your input.
 
 Before you start contributing, please take a moment to review the following guidelines.
 
 ## Code of Conduct
 
-We expect all contributors to abide by our [Code of Conduct](CODE_OF_CONDUCT.md) in all project-related interactions.
+I expect all contributors to abide by the [Code of Conduct](CODE_OF_CONDUCT.md) in all project-related interactions.
 
 ## Reporting Bugs
 
@@ -35,7 +35,7 @@ If you want to contribute code to cosmonaut-code, please follow these steps:
 4. Make your changes, following our [code style guide](CODE_STYLE_GUIDE.md)
 5. Commit your changes and push them to your forked repository
 6. Ensure that the pipeline runs successfully
-6. [Create a pull request](https://docs.github.com/en/github/collaborating-with-pull-requests/creating-a-pull-request) to the main repository
+7. [Create a pull request](https://docs.github.com/en/github/collaborating-with-pull-requests/creating-a-pull-request) to the main repository
 
 When creating your pull request, please include:
 
@@ -43,18 +43,18 @@ When creating your pull request, please include:
 - A detailed description of the changes you made and the reasoning behind them
 - Any relevant screenshots or examples
 
-We will review your pull request as soon as possible and provide feedback. If your pull request requires any changes, we will let you know what needs to be done. 
+I will review your pull request as soon as possible and provide feedback. If your pull request requires any changes, we will let you know what needs to be done.
 
 ## Code Style Guide
 
-We follow the [Rust code style guide](https://doc.rust-lang.org/1.0.0/style/README.html) for all code contributed to cosmonaut-code. 
+I follow the [Rust code style guide](https://doc.rust-lang.org/1.0.0/style/README.html) for all code contributed.
 
-Please ensure you run `cargo fmt --all --` frequently. 
+Please ensure you run `cargo fmt --all --` frequently.
 
 Additionally, run `cargo clippy --all-targets --all-features -- -D warnings` similarly and resolve any issues you find with your code.
 
-We suggest using a pre-commit hook to do this automatically. 
+I suggest using a pre-commit hook to do this automatically.
 
 ## License
 
-By contributing to cosmonaut-code, you agree that your contributions will be licensed under the [MIT License](LICENSE).
+By contributing to google-generative-ai-rs, you agree that your contributions will be licensed under the [MIT License](LICENSE).

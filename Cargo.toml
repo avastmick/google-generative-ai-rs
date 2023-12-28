@@ -1,11 +1,11 @@
 [package]
-name = "google-generative-ai-api-rs"
+name = "google-generative-ai-rs"
 version = "0.1.0"
 edition = "2021"
 authors = ["Mick Clarke <avastmick@outlook.com>"]
 license = "MIT"
 description = "An unofficial rust-based client library to interact with the Google Gemini generative AI API"
-repository = "https://github.com/avastmick/google-generative-ai-api-rs"
+repository = "https://github.com/avastmick/google-generative-ai-rs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

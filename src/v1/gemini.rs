@@ -101,29 +101,35 @@ pub mod request {
     #[derive(Debug, Clone, Serialize)]
     pub struct Request {
         pub contents: Vec<Content>,
-        #[serde(default)]
+        #[serde(skip_serializing_if = "Vec::is_empty")]
         pub tools: Vec<Tools>,
+        #[serde(skip_serializing_if = "Vec::is_empty")]
         #[serde(default, rename = "safetySettings")]
         pub safety_settings: Vec<SafetySettings>,
+        #[serde(skip_serializing_if = "Option::is_none")]
         #[serde(default, rename = "generationConfig")]
-        pub generation_config: GenerationConfig,
+        pub generation_config: Option<GenerationConfig>,
     }
 
     #[derive(Debug, Clone, Serialize)]
     pub struct Content {
+        pub role: Role,
         #[serde(default)]
         pub parts: Vec<Part>,
-        pub role: Role,
     }
 
     #[derive(Debug, Clone, Serialize)]
     pub struct Part {
+        #[serde(skip_serializing_if = "Option::is_none")]
         pub text: Option<String>,
+        #[serde(skip_serializing_if = "Option::is_none")]
         #[serde(rename = "inlineData")]
         pub inline_data: Option<InlineData>,
+        #[serde(skip_serializing_if = "Option::is_none")]
         #[serde(rename = "fileData")]
         pub file_data: Option<FileData>,
         #[serde(rename = "videoMetadata")]
+        #[serde(skip_serializing_if = "Option::is_none")]
         pub video_metadata: Option<VideoMetadata>,
     }
     #[derive(Debug, Clone, Serialize)]
@@ -243,7 +249,7 @@ pub mod response {
     };
 
     #[derive(Debug, Clone, Deserialize)]
-    pub struct TextResponse {
+    pub struct Response {
         pub candidates: Vec<Candidate>,
         #[serde(rename = "promptFeedback")]
         pub prompt_feedback: Option<PromptFeedback>,
@@ -302,7 +308,7 @@ pub mod safety {
 
     /// The safety category to configure a threshold for.
     #[derive(Debug, Clone, Deserialize, Serialize)]
-    #[serde(rename_all = "UPPERCASE")]
+    #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
     pub enum HarmCategory {
         HarmCategorySexuallyExplicit,
         HarmCategoryHateSpeech,
@@ -311,7 +317,7 @@ pub mod safety {
     }
     /// For a request: the safety category to configure a threshold for. For a response: the harm probability levels in the content.
     #[derive(Debug, Clone, Deserialize, Serialize)]
-    #[serde(rename_all = "UPPERCASE")]
+    #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
     pub enum HarmProbability {
         HarmProbabilityUnspecified,
         Negligible,
@@ -321,7 +327,7 @@ pub mod safety {
     }
     /// The threshold for blocking responses that could belong to the specified safety category based on probability.
     #[derive(Debug, Clone, Deserialize, Serialize)]
-    #[serde(rename_all = "UPPERCASE")]
+    #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
     pub enum HarmBlockThreshold {
         BlockNone,
         BlockLowAndAbove,

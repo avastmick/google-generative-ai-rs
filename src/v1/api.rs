@@ -1,6 +1,10 @@
 //! Manages the interaction with the REST API.
 use std::fmt;
+use std::time::Duration;
 
+use crate::v1::errors::GoogleAPIError;
+use crate::v1::gemini::request::Request;
+use crate::v1::gemini::response::Response;
 use crate::v1::gemini::Model;
 
 const PUBLIC_API_URL_BASE: &str = "https://generativelanguage.googleapis.com/v1";
@@ -67,30 +71,108 @@ impl Client {
             project_id: Some(project_id),
         }
     }
-
-    // build a public request
-
-    // build a private request
-
     // post
+    pub async fn post(
+        &self,
+        timeout: u64,
+        api_request: &Request,
+    ) -> Result<Response, GoogleAPIError> {
+        let client = self.get_reqwest_client(timeout)?;
+
+        if self.region.is_some() && self.project_id.is_some() {
+            // Not implemented yet
+            Err(GoogleAPIError {
+                message: "The client not implemented for the VertexAI API.".to_owned(),
+                code: None,
+            })
+        } else {
+            self.get_public_post_result(client, api_request).await
+        }
+    }
+
+    /// A standard post request to the public API - i.e., not to the Vertex AI private API.
+    async fn get_public_post_result(
+        &self,
+        client: reqwest::Client,
+        api_request: &Request,
+    ) -> Result<Response, GoogleAPIError> {
+        let result = client
+            .post(&self._url)
+            .header(reqwest::header::USER_AGENT, env!("CARGO_CRATE_NAME"))
+            .json(&api_request)
+            .send()
+            .await;
+
+        match result {
+            Ok(response) => match response.status() {
+                reqwest::StatusCode::OK => Ok(response.json::<Response>().await.map_err(|e|GoogleAPIError {
+                message: format!(
+                        "Failed to deserialize API response into v1::gemini::response::Response: {}",
+                        e
+                    ),
+                code: None,
+            })?),
+                _ => Err(self.new_error_from_status_code(response.status())),
+            },
+            Err(e) => Err(self.new_error_from_reqwest_error(e)),
+        }
+    }
 
     // get
 
     // function
+
+    fn get_reqwest_client(&self, timeout: u64) -> Result<reqwest::Client, GoogleAPIError> {
+        let client: reqwest::Client = reqwest::Client::builder()
+            .timeout(Duration::from_secs(timeout))
+            .build()
+            .map_err(|e| self.new_error_from_reqwest_error(e.without_url()))?;
+        Ok(client)
+    }
+    /// Creates a new error from a status code.
+    /// TODO manage all the potential status codes
+    fn new_error_from_status_code(&self, code: reqwest::StatusCode) -> GoogleAPIError {
+        match code {
+            reqwest::StatusCode::UNAUTHORIZED => GoogleAPIError {
+                message: "Authorization error.".to_owned(),
+                code: Some(code),
+            },
+            reqwest::StatusCode::BAD_REQUEST => GoogleAPIError {
+                message: "API request format not correctly formed.".to_owned(),
+                code: Some(code),
+            },
+            reqwest::StatusCode::FORBIDDEN => GoogleAPIError {
+                message: "Forbidden. Check API permissions.".to_owned(),
+                code: Some(code),
+            },
+            _ => GoogleAPIError {
+                message: format!("An unexpected HTTP error code: {:?}", code),
+                code: Some(code),
+            },
+        }
+    }
+    /// Creates a new error from a reqwest error.
+    fn new_error_from_reqwest_error(&self, e: reqwest::Error) -> GoogleAPIError {
+        GoogleAPIError {
+            message: format!("{}", e),
+            code: e.status(),
+        }
+    }
 }
+
 /// Ensuring there is no leakage of secrets
 impl fmt::Display for Client {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if self.region.is_some() && self.project_id.is_some() {
             write!(
                 f,
-                "Client {{ url: {:?}, model: {:?}, region: {:?}, project_id: {:?} }}",
+                "GenerativeAiClient {{ url: {:?}, model: {:?}, region: {:?}, project_id: {:?} }}",
                 self._url, self.model, self.region, self.project_id
             )
         } else {
             write!(
                 f,
-                "Client {{ url: {:?}, model: {:?}, region: {:?}, project_id: {:?} }}",
+                "GenerativeAiClient {{ url: {:?}, model: {:?}, region: {:?}, project_id: {:?} }}",
                 Url::new(&self.model, "*************".to_string()),
                 self.model,
                 self.region,
