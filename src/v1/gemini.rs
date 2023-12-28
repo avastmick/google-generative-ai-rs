@@ -289,7 +289,7 @@ pub mod response {
 
     /// The reason why the model stopped generating tokens. If empty, the model has not stopped generating the tokens.
     #[derive(Debug, Clone, Deserialize)]
-    #[serde(rename_all = "UPPERCASE")]
+    #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
     pub enum FinishReason {
         FinishReasonUnspecified, // The finish reason is unspecified.
         FinishReasonStop,        // Natural stop point of the model or provided stop sequence.
