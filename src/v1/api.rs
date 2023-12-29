@@ -24,6 +24,21 @@ pub enum PostResult {
     Rest(Response),
     Streamed(StreamedResponse),
 }
+impl PostResult {
+    pub fn rest(self) -> Option<Response> {
+        match self {
+            PostResult::Rest(response) => Some(response),
+            _ => None,
+        }
+    }
+    pub fn streamed(self) -> Option<StreamedResponse> {
+        match self {
+            PostResult::Streamed(streamed_response) => Some(streamed_response),
+            _ => None,
+        }
+    }
+}
+
 /// Manages the specific API connection
 pub struct Client {
     url: String,
