@@ -119,37 +119,33 @@ pub mod request {
     }
 
     #[derive(Debug, Clone, Serialize)]
+    #[serde(rename_all = "camelCase")]
     pub struct Part {
         #[serde(skip_serializing_if = "Option::is_none")]
         pub text: Option<String>,
         #[serde(skip_serializing_if = "Option::is_none")]
-        #[serde(rename = "inlineData")]
         pub inline_data: Option<InlineData>,
         #[serde(skip_serializing_if = "Option::is_none")]
-        #[serde(rename = "fileData")]
         pub file_data: Option<FileData>,
-        #[serde(rename = "videoMetadata")]
         #[serde(skip_serializing_if = "Option::is_none")]
         pub video_metadata: Option<VideoMetadata>,
     }
     #[derive(Debug, Clone, Serialize)]
+    #[serde(rename_all = "camelCase")]
     pub struct InlineData {
-        #[serde(rename = "mimeType")]
         pub mime_type: String,
         pub data: String,
     }
     #[derive(Debug, Clone, Serialize)]
+    #[serde(rename_all = "camelCase")]
     pub struct FileData {
-        #[serde(rename = "mimeType")]
         pub mime_type: String,
-        #[serde(rename = "fileUri")]
         pub file_uri: String,
     }
     #[derive(Debug, Clone, Serialize)]
+    #[serde(rename_all = "camelCase")]
     pub struct VideoMetadata {
-        #[serde(rename = "startOffset")]
         pub start_offset: StartOffset,
-        #[serde(rename = "endOffset")]
         pub end_offset: EndOffset,
     }
     #[derive(Debug, Clone, Serialize)]
@@ -182,15 +178,13 @@ pub mod request {
         pub threshold: HarmBlockThreshold,
     }
     #[derive(Debug, Clone, Serialize)]
+    #[serde(rename_all = "camelCase")]
     pub struct GenerationConfig {
         pub temperature: Option<f32>,
         pub top_p: Option<f32>,
         pub top_k: Option<i32>,
-        #[serde(rename = "candidateCount")]
         pub candidate_count: Option<i32>,
-        #[serde(rename = "maxOutputTokens")]
         pub max_output_tokens: Option<i32>,
-        #[serde(rename = "stopSequences")]
         pub stop_sequences: Option<Vec<String>>,
     }
 }
@@ -248,20 +242,33 @@ pub mod response {
         Role,
     };
 
-    #[derive(Debug, Clone, Deserialize)]
-    pub struct Response {
-        pub candidates: Vec<Candidate>,
-        #[serde(rename = "promptFeedback")]
-        pub prompt_feedback: Option<PromptFeedback>,
+    // The streamGenerateContent response
+    #[derive(Debug, Default, Deserialize)]
+    #[serde(rename_all = "camelCase")]
+    pub struct StreamedResponse {
+        pub streamed_candidates: Vec<Response>,
     }
     #[derive(Debug, Clone, Deserialize)]
+    #[serde(rename_all = "camelCase")]
+    pub struct Response {
+        pub candidates: Vec<Candidate>,
+        pub prompt_feedback: Option<PromptFeedback>,
+        pub usage_metadata: Option<UsageMetadata>,
+    }
+    #[derive(Debug, Clone, Deserialize)]
+    #[serde(rename_all = "camelCase")]
     pub struct Candidate {
         pub content: Content,
-        #[serde(rename = "finishReason")]
         pub finish_reason: Option<String>,
         pub index: Option<i32>,
-        #[serde(rename = "safetyRatings")]
         pub safety_ratings: Vec<SafetyRating>,
+    }
+    #[derive(Debug, Clone, Deserialize)]
+    #[serde(rename_all = "camelCase")]
+    pub struct UsageMetadata {
+        pub candidates_token_count: u64,
+        pub prompt_token_count: u64,
+        pub total_token_count: u64,
     }
     #[derive(Debug, Clone, Deserialize)]
     pub struct Content {
