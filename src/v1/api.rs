@@ -158,7 +158,7 @@ impl Client {
                     let mut streamed_reponse = StreamedResponse {
                         streamed_candidates: vec![],
                     };
-                    let mut response_stream = response.json_array_stream::<serde_json::Value>(2048);
+                    let mut response_stream = response.json_array_stream::<serde_json::Value>(2048); //TODO what is a good length?
                     while let Some(json_value) =
                         response_stream
                             .try_next()
