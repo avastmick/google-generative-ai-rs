@@ -1,8 +1,10 @@
 # Google Generative AI API client (unofficial)
 
+[![Rust Check](https://github.com/avastmick/google-generative-ai-rs/actions/workflows/rust-check.yml/badge.svg)](https://github.com/avastmick/google-generative-ai-rs/actions/workflows/rust-check.yml)
+
 An unofficial rust-based client library to interact with the Google generative AI API.
 
-The goal is to emulate the [Google AI Python SDK](https://github.com/google/generative-ai-python), but in Rust.
+The goal is to emulate the [Google AI Python SDK](https://github.com/google/generative-ai-python) but in Rust.
 
 The initial focus will be on the [newer Gemini models](https://blog.google/technology/ai/google-gemini-ai/), but the more stable and mature models will hopefully also be supported soon.
 
