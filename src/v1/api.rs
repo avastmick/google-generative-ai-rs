@@ -158,7 +158,7 @@ impl Client {
                     let mut streamed_reponse = StreamedResponse {
                         streamed_candidates: vec![],
                     };
-                    let mut response_stream = response.json_array_stream::<serde_json::Value>(2048);
+                    let mut response_stream = response.json_array_stream::<serde_json::Value>(2048); //TODO what is a good length?
                     while let Some(json_value) =
                         response_stream
                             .try_next()
@@ -257,7 +257,12 @@ impl Client {
         }
     }
     /// Creates a new error from a reqwest error.
-    fn new_error_from_reqwest_error(&self, e: reqwest::Error) -> GoogleAPIError {
+    fn new_error_from_reqwest_error(&self, mut e: reqwest::Error) -> GoogleAPIError {
+        if let Some(url) = e.url_mut() {
+            // Remove the API key from the URL, if any
+            url.query_pairs_mut().clear();
+        }
+
         GoogleAPIError {
             message: format!("{}", e),
             code: e.status(),
