@@ -2,10 +2,7 @@ use std::env;
 
 use google_generative_ai_rs::v1::{
     api::Client,
-    gemini::{
-        request::{Content, Part, Request},
-        Role,
-    },
+    gemini::{request::Request, Content, Part, Role},
 };
 
 /// Simple text request using the public API and an API key for authn

@@ -2,6 +2,8 @@
 use core::fmt;
 use serde::{Deserialize, Serialize};
 
+use self::request::{FileData, InlineData, VideoMetadata};
+
 #[derive(Debug, Clone, Default, PartialEq, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum Model {
@@ -16,6 +18,24 @@ impl fmt::Display for Model {
             Model::GeminiProVision => write!(f, "gemini-pro-vision"),
         }
     }
+}
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct Content {
+    pub role: Role,
+    #[serde(default)]
+    pub parts: Vec<Part>,
+}
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Part {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub text: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub inline_data: Option<InlineData>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub file_data: Option<FileData>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub video_metadata: Option<VideoMetadata>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -91,13 +111,12 @@ pub enum Role {
 /// ```
 /// See https://cloud.google.com/vertex-ai/docs/generative-ai/model-reference/gemini
 pub mod request {
-    use serde::Serialize;
+    use serde::{Deserialize, Serialize};
 
     use super::{
         safety::{HarmBlockThreshold, HarmCategory},
-        Role,
+        Content,
     };
-
     #[derive(Debug, Clone, Serialize)]
     pub struct Request {
         pub contents: Vec<Content>,
@@ -110,55 +129,34 @@ pub mod request {
         #[serde(default, rename = "generationConfig")]
         pub generation_config: Option<GenerationConfig>,
     }
-
-    #[derive(Debug, Clone, Serialize)]
-    pub struct Content {
-        pub role: Role,
-        #[serde(default)]
-        pub parts: Vec<Part>,
-    }
-
-    #[derive(Debug, Clone, Serialize)]
-    #[serde(rename_all = "camelCase")]
-    pub struct Part {
-        #[serde(skip_serializing_if = "Option::is_none")]
-        pub text: Option<String>,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        pub inline_data: Option<InlineData>,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        pub file_data: Option<FileData>,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        pub video_metadata: Option<VideoMetadata>,
-    }
-    #[derive(Debug, Clone, Serialize)]
+    #[derive(Debug, Clone, Deserialize, Serialize)]
     #[serde(rename_all = "camelCase")]
     pub struct InlineData {
         pub mime_type: String,
         pub data: String,
     }
-    #[derive(Debug, Clone, Serialize)]
+    #[derive(Debug, Clone, Deserialize, Serialize)]
     #[serde(rename_all = "camelCase")]
     pub struct FileData {
         pub mime_type: String,
         pub file_uri: String,
     }
-    #[derive(Debug, Clone, Serialize)]
+    #[derive(Debug, Clone, Deserialize, Serialize)]
     #[serde(rename_all = "camelCase")]
     pub struct VideoMetadata {
         pub start_offset: StartOffset,
         pub end_offset: EndOffset,
     }
-    #[derive(Debug, Clone, Serialize)]
+    #[derive(Debug, Clone, Deserialize, Serialize)]
     pub struct StartOffset {
         pub seconds: i32,
         pub nanos: i32,
     }
-    #[derive(Debug, Clone, Serialize)]
+    #[derive(Debug, Clone, Deserialize, Serialize)]
     pub struct EndOffset {
         pub seconds: i32,
         pub nanos: i32,
     }
-
     #[derive(Debug, Clone, Serialize)]
     pub struct Tools {
         #[serde(rename = "functionDeclarations")]
@@ -239,7 +237,7 @@ pub mod response {
 
     use super::{
         safety::{HarmCategory, HarmProbability},
-        Role,
+        Content,
     };
 
     // The streamGenerateContent response
@@ -269,16 +267,6 @@ pub mod response {
         pub candidates_token_count: u64,
         pub prompt_token_count: u64,
         pub total_token_count: u64,
-    }
-    #[derive(Debug, Clone, Deserialize)]
-    pub struct Content {
-        #[serde(default)]
-        pub parts: Vec<Part>,
-        pub role: Role,
-    }
-    #[derive(Debug, Clone, Deserialize)]
-    pub struct Part {
-        pub text: String,
     }
     #[derive(Debug, Clone, Deserialize)]
     pub struct PromptFeedback {
