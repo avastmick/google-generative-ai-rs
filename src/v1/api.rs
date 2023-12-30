@@ -257,7 +257,12 @@ impl Client {
         }
     }
     /// Creates a new error from a reqwest error.
-    fn new_error_from_reqwest_error(&self, e: reqwest::Error) -> GoogleAPIError {
+    fn new_error_from_reqwest_error(&self, mut e: reqwest::Error) -> GoogleAPIError {
+        if let Some(url) = e.url_mut() {
+            // Remove the API key from the URL, if any
+            url.query_pairs_mut().clear();
+        }
+
         GoogleAPIError {
             message: format!("{}", e),
             code: e.status(),
