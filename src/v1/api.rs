@@ -8,30 +8,31 @@ use reqwest_streams::*;
 
 use crate::v1::errors::GoogleAPIError;
 use crate::v1::gemini::request::Request;
-use crate::v1::gemini::response::Response;
+use crate::v1::gemini::response::GeminiResponse;
 use crate::v1::gemini::Model;
 
-use super::gemini::response::StreamedResponse;
+use super::gemini::response::StreamedGeminiResponse;
+use super::gemini::ResponseType;
 
 const PUBLIC_API_URL_BASE: &str = "https://generativelanguage.googleapis.com/v1";
-const PRIVATE_API_URL_BASE: &str = "https://{region}-aiplatform.googleapis.com/v1";
+const VERTEX_AI_API_URL_BASE: &str = "https://{region}-aiplatform.googleapis.com/v1";
 
 const GCP_API_AUTH_SCOPE: &str = "https://www.googleapis.com/auth/cloud-platform";
 
 /// Enables a streamed or non-streamed response to be returned from the API.
 #[derive(Debug)]
 pub enum PostResult {
-    Rest(Response),
-    Streamed(StreamedResponse),
+    Rest(GeminiResponse),
+    Streamed(StreamedGeminiResponse),
 }
 impl PostResult {
-    pub fn rest(self) -> Option<Response> {
+    pub fn rest(self) -> Option<GeminiResponse> {
         match self {
             PostResult::Rest(response) => Some(response),
             _ => None,
         }
     }
-    pub fn streamed(self) -> Option<StreamedResponse> {
+    pub fn streamed(self) -> Option<StreamedGeminiResponse> {
         match self {
             PostResult::Streamed(streamed_response) => Some(streamed_response),
             _ => None,
@@ -45,41 +46,66 @@ pub struct Client {
     pub model: Model,
     pub region: Option<String>,
     pub project_id: Option<String>,
+    pub response_type: ResponseType,
 }
 impl Client {
     /// Creates a default new public API client.
     pub fn new(api_key: String) -> Self {
-        let url = Url::new(&Model::default(), api_key);
+        let url = Url::new(&Model::default(), api_key, &ResponseType::GenerateContent);
         Self {
             url: url.url,
             model: Model::default(),
             region: None,
             project_id: None,
+            response_type: ResponseType::GenerateContent,
         }
     }
     /// Create a new public API client for a specified model.
     pub fn new_from_model(model: Model, api_key: String) -> Self {
-        let url = Url::new(&model, api_key);
+        let url = Url::new(&model, api_key, &ResponseType::GenerateContent);
         Self {
             url: url.url,
             model,
             region: None,
             project_id: None,
+            response_type: ResponseType::GenerateContent,
+        }
+    }
+    /// Create a new public API client for a specified model.
+    pub fn new_from_model_reponse_type(
+        model: Model,
+        api_key: String,
+        response_type: ResponseType,
+    ) -> Self {
+        let url = Url::new(&model, api_key, &response_type);
+        Self {
+            url: url.url,
+            model,
+            region: None,
+            project_id: None,
+            response_type,
         }
     }
     /// Create a new private API client using the default model, `Gemini-pro`.
+    ///
+    /// Note: the current version of the Vertex API only supports streamed responses. A call to a 'generateContent' will return a '404' error.
     ///
     /// Parameters:
     /// * region - the GCP region to use
     /// * project_id - the GCP account project_id to use
     pub fn new_from_region_project_id(region: String, project_id: String) -> Self {
-        let url =
-            Url::new_from_region_project_id(&Model::default(), region.clone(), project_id.clone());
+        let url = Url::new_from_region_project_id(
+            &Model::default(),
+            region.clone(),
+            project_id.clone(),
+            &ResponseType::StreamGenerateContent,
+        );
         Self {
             url: url.url,
             model: Model::default(),
             region: Some(region),
             project_id: Some(project_id),
+            response_type: ResponseType::StreamGenerateContent,
         }
     }
     /// Create a new private API client.
@@ -92,12 +118,18 @@ impl Client {
         region: String,
         project_id: String,
     ) -> Self {
-        let url = Url::new_from_region_project_id(&model, region.clone(), project_id.clone());
+        let url = Url::new_from_region_project_id(
+            &model,
+            region.clone(),
+            project_id.clone(),
+            &ResponseType::StreamGenerateContent,
+        );
         Self {
             url: url.url,
             model,
             region: Some(region),
             project_id: Some(project_id),
+            response_type: ResponseType::StreamGenerateContent,
         }
     }
     // post
@@ -107,29 +139,31 @@ impl Client {
         api_request: &Request,
     ) -> Result<PostResult, GoogleAPIError> {
         let client: reqwest::Client = self.get_reqwest_client(timeout)?;
-        // Test for the type of API request, i.e., public or private
-        if self.region.is_some() && self.project_id.is_some() {
-            let result = self.get_private_post_result(client, api_request).await?;
-            Ok(PostResult::Streamed(result))
-        } else {
-            let result = self.get_public_post_result(client, api_request).await?;
-            Ok(PostResult::Rest(result))
+        match self.response_type {
+            ResponseType::GenerateContent => {
+                let result = self.get_post_result(client, api_request).await?;
+                Ok(PostResult::Rest(result))
+            }
+            ResponseType::StreamGenerateContent => {
+                let result = self.get_streamed_post_result(client, api_request).await?;
+                Ok(PostResult::Streamed(result))
+            }
         }
     }
 
-    /// A standard post request to the public API - i.e., not to the Vertex AI private API.
-    async fn get_public_post_result(
+    /// A standard post request, i.e., not streamed
+    async fn get_post_result(
         &self,
         client: reqwest::Client,
         api_request: &Request,
-    ) -> Result<Response, GoogleAPIError> {
+    ) -> Result<GeminiResponse, GoogleAPIError> {
         let result = self.get_post_response(client, api_request, None).await;
 
         match result {
             Ok(response) => match response.status() {
-                reqwest::StatusCode::OK => Ok(response.json::<Response>().await.map_err(|e|GoogleAPIError {
+                reqwest::StatusCode::OK => Ok(response.json::<GeminiResponse>().await.map_err(|e|GoogleAPIError {
                 message: format!(
-                        "Failed to deserialize API response into v1::gemini::response::Response: {}",
+                        "Failed to deserialize API response into v1::gemini::response::GeminiResponse: {}",
                         e
                     ),
                 code: None,
@@ -139,12 +173,12 @@ impl Client {
             Err(e) => Err(self.new_error_from_reqwest_error(e)),
         }
     }
-    /// A standard post request to the Vertex AI private API - i.e., not to the public API.
-    async fn get_private_post_result(
+    /// A streamed post request
+    async fn get_streamed_post_result(
         &self,
         client: reqwest::Client,
         api_request: &Request,
-    ) -> Result<StreamedResponse, GoogleAPIError> {
+    ) -> Result<StreamedGeminiResponse, GoogleAPIError> {
         let token: gcp_auth::Token = self.get_gcp_authn_token().await?;
 
         let result = self
@@ -155,7 +189,7 @@ impl Client {
             Ok(response) => match response.status() {
                 reqwest::StatusCode::OK => {
                     // Wire to enable introspection on the response stream
-                    let mut streamed_reponse = StreamedResponse {
+                    let mut streamed_reponse = StreamedGeminiResponse {
                         streamed_candidates: vec![],
                     };
                     let mut response_stream = response.json_array_stream::<serde_json::Value>(2048); //TODO what is a good length?
@@ -168,10 +202,10 @@ impl Client {
                                 code: None,
                             })?
                     {
-                        let res: Response = Self::convert_json_value_to_response(&json_value)
+                        let res: GeminiResponse = Self::convert_json_value_to_response(&json_value)
                             .map_err(|e| GoogleAPIError {
                                 message: format!(
-                                    "Failed to deserialize API response into v1::gemini::response::Candidate: {}",
+                                    "Failed to deserialize API response into v1::gemini::response::GeminiResponse: {}",
                                     e
                                 ),
                                 code: None,
@@ -187,7 +221,7 @@ impl Client {
             Err(e) => Err(self.new_error_from_reqwest_error(e)),
         }
     }
-    /// Gets a ['reqwest::Response'] from a post request.
+    /// Gets a ['reqwest::GeminiResponse'] from a post request.
     /// Parameters:
     /// * client - the ['reqwest::Client'] to use
     /// * api_request - the ['Request'] to send
@@ -208,9 +242,13 @@ impl Client {
 
         request_builder.json(&api_request).send().await
     }
-    // get
+    // TODO countTokens - see: "https://ai.google.dev/tutorials/rest_quickstart#count_tokens"
 
-    // function
+    // TODO get - see: "https://ai.google.dev/tutorials/rest_quickstart#get_model"
+
+    // TODO function - see "https://cloud.google.com/vertex-ai/docs/generative-ai/multimodal/function-calling"
+
+    // TODO embedContent - see: "https://ai.google.dev/tutorials/rest_quickstart#embedding"
 
     /// Gets a GCP authn token.
     /// See [`AuthenticationManager::new`](https://docs.rs/gcp-auth/0.1.0/gcp_auth/struct.AuthenticationManager.html) for details of approach.
@@ -236,7 +274,7 @@ impl Client {
     /// in order to handle any issues we use a serde_json::Value and then convert to a Gemini [`Candidate`].
     fn convert_json_value_to_response(
         json_value: &serde_json::Value,
-    ) -> Result<Response, serde_json::error::Error> {
+    ) -> Result<GeminiResponse, serde_json::error::Error> {
         serde_json::from_value(json_value.clone())
     }
     fn get_reqwest_client(&self, timeout: u64) -> Result<reqwest::Client, GoogleAPIError> {
@@ -283,7 +321,11 @@ impl fmt::Display for Client {
             write!(
                 f,
                 "GenerativeAiClient {{ url: {:?}, model: {:?}, region: {:?}, project_id: {:?} }}",
-                Url::new(&self.model, "*************".to_string()),
+                Url::new(
+                    &self.model,
+                    "*************".to_string(),
+                    &self.response_type
+                ),
                 self.model,
                 self.region,
                 self.project_id
@@ -293,27 +335,34 @@ impl fmt::Display for Client {
 }
 /// There are two different URLs for the API, depending on whether the model is public or private.
 /// Authn for public models is via an API key, while authn for private models is via application default credentials (ADC).
-/// The public API URL is in the form of:
-/// The private API URL is in the form of: https://{region}-aiplatform.googleapis.com/v1/projects/{project_id}/locations/{region}/publishers/google/models/{model}:streamGenerateContent
+/// The public API URL is in the form of: https://generativelanguage.googleapis.com/v1/models/{model}:{generateContent|streamGenerateContent}
+/// The Vertex AI API URL is in the form of: https://{region}-aiplatform.googleapis.com/v1/projects/{project_id}/locations/{region}/publishers/google/models/{model}:{streamGenerateContent}
 #[derive(Debug)]
 struct Url {
     url: String,
 }
 impl Url {
-    pub fn new(model: &Model, api_key: String) -> Self {
+    pub fn new(model: &Model, api_key: String, response_type: &ResponseType) -> Self {
         let base_url = PUBLIC_API_URL_BASE.to_owned();
         let url = format!(
-            "{}/models/{}:generateContent?key={}",
-            base_url, model, api_key
+            "{}/models/{}:{}?key={}",
+            base_url, model, response_type, api_key
         );
         Self { url }
     }
-    pub fn new_from_region_project_id(model: &Model, region: String, project_id: String) -> Self {
-        let base_url = PRIVATE_API_URL_BASE.to_owned().replace("{region}", &region);
+    pub fn new_from_region_project_id(
+        model: &Model,
+        region: String,
+        project_id: String,
+        response_type: &ResponseType,
+    ) -> Self {
+        let base_url = VERTEX_AI_API_URL_BASE
+            .to_owned()
+            .replace("{region}", &region);
 
         let url = format!(
-            "{}/projects/{}/locations/{}/publishers/google/models/{}:streamGenerateContent",
-            base_url, project_id, region, model
+            "{}/projects/{}/locations/{}/publishers/google/models/{}:{}",
+            base_url, project_id, region, model, response_type,
         );
         Self { url }
     }
@@ -364,7 +413,7 @@ mod tests {
     fn test_url_new() {
         let model = Model::default();
         let api_key = String::from("my-api-key");
-        let url = Url::new(&model, api_key.clone());
+        let url = Url::new(&model, api_key.clone(), &ResponseType::GenerateContent);
 
         assert_eq!(
             url.url,
@@ -380,13 +429,18 @@ mod tests {
         let model = Model::default();
         let region = String::from("us-central1");
         let project_id = String::from("my-project");
-        let url = Url::new_from_region_project_id(&model, region.clone(), project_id.clone());
+        let url = Url::new_from_region_project_id(
+            &model,
+            region.clone(),
+            project_id.clone(),
+            &ResponseType::StreamGenerateContent,
+        );
 
         assert_eq!(
             url.url,
             format!(
                 "{}/projects/{}/locations/{}/publishers/google/models/{}:streamGenerateContent",
-                PRIVATE_API_URL_BASE.replace("{region}", &region),
+                VERTEX_AI_API_URL_BASE.replace("{region}", &region),
                 project_id,
                 region,
                 model

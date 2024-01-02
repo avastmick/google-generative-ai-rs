@@ -38,6 +38,7 @@ Status today is: *"Happy path for both public and Vertex AI endpoints work for G
 - [X] Create the public API happy path for Gemini
 - [X] Create the Vertex AI (private) API happy path for Gemini
 - [X] Create basic error handling
-- [ ] Add get requests for API queries
-- [ ] Add support for multimedia handling
-- [ ] Add functions support
+- [ ] countTokens - see: "<https://ai.google.dev/tutorials/rest_quickstart#count_tokens>"
+- [ ] get - see: "<https://ai.google.dev/tutorials/rest_quickstart#get_model>"
+- [ ] function - see "<https://cloud.google.com/vertex-ai/docs/generative-ai/multimodal/function-calling>"
+- [ ] embedContent - see: "<https://ai.google.dev/tutorials/rest_quickstart#embedding>"

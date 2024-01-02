@@ -1,3 +1,4 @@
+use log::info;
 use std::env;
 
 use google_generative_ai_rs::v1::{
@@ -14,13 +15,15 @@ use google_generative_ai_rs::v1::{
 /// gcloud init
 /// gcloud auth application-default login
 /// ```
+/// Note: right now there seems to be no non-streamed URL for the Vertex AI endpoint, so we're using the streamed URL only
 ///
 /// To run:
 /// ```
-/// GCP_REGION_NAME=[THE REGION WHERE YOUR ENDPOINT IS HOSTED] GCP_PROJECT_ID=[YOUR GCP PROJECT_ID] cargo run --package google-generative-ai-rs --example vertex_text_request
+/// GCP_REGION_NAME=[THE REGION WHERE YOUR ENDPOINT IS HOSTED] GCP_PROJECT_ID=[YOUR GCP PROJECT_ID] RUST_LOG=info cargo run --package google-generative-ai-rs --example vertex_text_request
 /// ``
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    env_logger::init();
     let region = env::var("GCP_REGION_NAME").unwrap().to_string();
     let project_id = env::var("GCP_PROJECT_ID").unwrap().to_string();
 
@@ -43,7 +46,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let response = client.post(30, &txt_request).await?;
 
-    print!("{:#?}", response);
+    info!("{:#?}", response);
 
     Ok(())
 }
