@@ -1,6 +1,6 @@
 [package]
 name = "google-generative-ai-rs"
-version = "0.1.4"
+version = "0.1.5"
 edition = "2021"
 authors = ["Mick Clarke <avastmick@outlook.com>"]
 license = "MIT"
@@ -13,10 +13,12 @@ keywords = ["google", "generative", "ai", "gemini", "client"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-futures = { version = "0.3.30" }
-gcp_auth = { version = "0.10.0" }
-reqwest = { version = "0.11.23", features = ["json"] }
-reqwest-streams = { version = "0.5.1", features = ["json"] }
-serde = { version = "1.0.193", features = ["derive"] }
-serde_json = {version = "1.0.108"}
-tokio = { version = "1.35.1", features = ["full"] }
+env_logger = { version = "0.10" }
+futures = { version = "0.3" }
+gcp_auth = { version = "0.10" }
+log = { version = "0.4.20" }
+reqwest = { version = "0.11", features = ["json"] }
+reqwest-streams = { version = "0.5", features = ["json"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = {version = "1.0"}
+tokio = { version = "1.35", features = ["full"] }

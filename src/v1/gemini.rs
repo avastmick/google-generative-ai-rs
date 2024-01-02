@@ -4,18 +4,41 @@ use serde::{Deserialize, Serialize};
 
 use self::request::{FileData, InlineData, VideoMetadata};
 
+/// Defines the type of response expected from the API.
+/// Used at the end of the API URL for the Gemini API.
+#[derive(Debug, Clone, Default, PartialEq)]
+pub enum ResponseType {
+    #[default]
+    GenerateContent,
+    StreamGenerateContent,
+    // TODO EmbedContent,
+    // TODO BatchEmbedContents,
+}
+impl fmt::Display for ResponseType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            ResponseType::GenerateContent => f.write_str("generateContent"),
+            ResponseType::StreamGenerateContent => f.write_str("streamGenerateContent"),
+            // TODO ResponseType::EmbedContent => f.write_str("embedContent"),
+            // TODO ResponseType::BatchEmbedContents => f.write_str("batchEmbedContents"),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Default, PartialEq, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum Model {
     #[default]
     GeminiPro,
     GeminiProVision,
+    // TODO Embedding001
 }
 impl fmt::Display for Model {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Model::GeminiPro => write!(f, "gemini-pro"),
             Model::GeminiProVision => write!(f, "gemini-pro-vision"),
+            // TODO Model::Embedding001 => write!(f, "embedding-001"),
         }
     }
 }
@@ -243,12 +266,12 @@ pub mod response {
     // The streamGenerateContent response
     #[derive(Debug, Default, Deserialize)]
     #[serde(rename_all = "camelCase")]
-    pub struct StreamedResponse {
-        pub streamed_candidates: Vec<Response>,
+    pub struct StreamedGeminiResponse {
+        pub streamed_candidates: Vec<GeminiResponse>,
     }
     #[derive(Debug, Clone, Deserialize)]
     #[serde(rename_all = "camelCase")]
-    pub struct Response {
+    pub struct GeminiResponse {
         pub candidates: Vec<Candidate>,
         pub prompt_feedback: Option<PromptFeedback>,
         pub usage_metadata: Option<UsageMetadata>,
