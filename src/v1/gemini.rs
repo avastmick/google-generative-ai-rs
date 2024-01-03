@@ -11,18 +11,64 @@ pub enum ResponseType {
     #[default]
     GenerateContent,
     StreamGenerateContent,
-    // TODO EmbedContent,
-    // TODO BatchEmbedContents,
+    GetModel,
+    GetModelList,
+    EmbedContent,
+    BatchEmbedContents,
 }
 impl fmt::Display for ResponseType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             ResponseType::GenerateContent => f.write_str("generateContent"),
             ResponseType::StreamGenerateContent => f.write_str("streamGenerateContent"),
-            // TODO ResponseType::EmbedContent => f.write_str("embedContent"),
-            // TODO ResponseType::BatchEmbedContents => f.write_str("batchEmbedContents"),
+            ResponseType::GetModel => f.write_str(""), // No display as its already in the URL
+            ResponseType::GetModelList => f.write_str(""), // No display as its already in the URL
+            ResponseType::EmbedContent => f.write_str("embedContent"),
+            ResponseType::BatchEmbedContents => f.write_str("batchEmbedContents"),
         }
     }
+}
+/// Captures the information for a specific Google generative AI model.
+///
+/// ```json
+/// {
+///    "name": "models/gemini-pro",
+///    "version": "001",
+///    "displayName": "Gemini Pro",
+///    "description": "The best model for scaling across a wide range of tasks",
+///    "inputTokenLimit": 30720,
+///    "outputTokenLimit": 2048,
+///    "supportedGenerationMethods": [
+///        "generateContent",
+///        "countTokens"
+///    ],
+///    "temperature": 0.9,
+///    "topP": 1,
+///    "topK": 100,
+/// }
+/// ```
+#[derive(Debug, Default, Deserialize)]
+#[serde(rename_all = "camelCase")]
+#[serde(rename = "model")]
+pub struct ModelInformation {
+    pub name: String,
+    pub version: String,
+    pub display_name: String,
+    pub description: String,
+    pub input_token_limit: i32,
+    pub output_token_limit: i32,
+    pub supported_generation_methods: Vec<String>,
+    pub temperature: Option<f32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub top_p: Option<f32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub top_k: Option<i32>,
+}
+/// Lists the available models for the Gemini API.
+#[derive(Debug, Default, Deserialize)]
+#[serde(rename = "models")]
+pub struct ModelInformationList {
+    pub models: Vec<ModelInformation>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize)]

@@ -12,7 +12,7 @@ use crate::v1::gemini::response::GeminiResponse;
 use crate::v1::gemini::Model;
 
 use super::gemini::response::StreamedGeminiResponse;
-use super::gemini::ResponseType;
+use super::gemini::{ModelInformation, ModelInformationList, ResponseType};
 
 const PUBLIC_API_URL_BASE: &str = "https://generativelanguage.googleapis.com/v1";
 const VERTEX_AI_API_URL_BASE: &str = "https://{region}-aiplatform.googleapis.com/v1";
@@ -58,6 +58,17 @@ impl Client {
             region: None,
             project_id: None,
             response_type: ResponseType::GenerateContent,
+        }
+    }
+    /// Creates a default new public API client for a specified response type.
+    pub fn new_from_response_type(response_type: ResponseType, api_key: String) -> Self {
+        let url = Url::new(&Model::default(), api_key, &response_type);
+        Self {
+            url: url.url,
+            model: Model::default(),
+            region: None,
+            project_id: None,
+            response_type,
         }
     }
     /// Create a new public API client for a specified model.
@@ -148,6 +159,10 @@ impl Client {
                 let result = self.get_streamed_post_result(client, api_request).await?;
                 Ok(PostResult::Streamed(result))
             }
+            _ => Err(GoogleAPIError {
+                message: format!("Unsupported response type: {:?}", self.response_type),
+                code: None,
+            }),
         }
     }
 
@@ -244,7 +259,72 @@ impl Client {
     }
     // TODO countTokens - see: "https://ai.google.dev/tutorials/rest_quickstart#count_tokens"
 
-    // TODO get - see: "https://ai.google.dev/tutorials/rest_quickstart#get_model"
+    /// Get for the url specified in 'self'
+    async fn get(
+        &self,
+        timeout: u64,
+    ) -> Result<Result<reqwest::Response, reqwest::Error>, GoogleAPIError> {
+        let client: reqwest::Client = self.get_reqwest_client(timeout)?;
+        let result = client
+            .get(&self.url)
+            .header(reqwest::header::USER_AGENT, env!("CARGO_CRATE_NAME"))
+            .send()
+            .await;
+        Ok(result)
+    }
+    /// Gets a model - see: "https://ai.google.dev/tutorials/rest_quickstart#get_model"
+    /// Parameters:
+    /// * timeout - the timeout in seconds
+    pub async fn get_model(&self, timeout: u64) -> Result<ModelInformation, GoogleAPIError> {
+        let result = self.get(timeout).await?;
+
+        match result {
+            Ok(response) => {
+                match response.status() {
+                    reqwest::StatusCode::OK => Ok(response
+                        .json::<ModelInformation>()
+                        .await
+                        .map_err(|e| GoogleAPIError {
+                            message: format!(
+                        "Failed to deserialize API response into v1::gemini::ModelInformation: {}",
+                        e
+                    ),
+                            code: None,
+                        })?),
+                    _ => Err(self.new_error_from_status_code(response.status())),
+                }
+            }
+            Err(e) => Err(self.new_error_from_reqwest_error(e)),
+        }
+    }
+    /// Gets a list of models - see: "https://ai.google.dev/tutorials/rest_quickstart#list_models"
+    /// Parameters:
+    /// * timeout - the timeout in seconds
+    pub async fn get_model_list(
+        &self,
+        timeout: u64,
+    ) -> Result<ModelInformationList, GoogleAPIError> {
+        let result = self.get(timeout).await?;
+
+        match result {
+            Ok(response) => {
+                match response.status() {
+                    reqwest::StatusCode::OK => Ok(response
+                        .json::<ModelInformationList>()
+                        .await
+                        .map_err(|e| GoogleAPIError {
+                            message: format!(
+                        "Failed to deserialize API response into Vec<v1::gemini::ModelInformationList>: {}",
+                        e
+                    ),
+                        code: None,
+                    })?),
+                    _ => Err(self.new_error_from_status_code(response.status())),
+                }
+            }
+            Err(e) => Err(self.new_error_from_reqwest_error(e)),
+        }
+    }
 
     // TODO function - see "https://cloud.google.com/vertex-ai/docs/generative-ai/multimodal/function-calling"
 
@@ -342,15 +422,25 @@ struct Url {
     url: String,
 }
 impl Url {
-    pub fn new(model: &Model, api_key: String, response_type: &ResponseType) -> Self {
+    fn new(model: &Model, api_key: String, response_type: &ResponseType) -> Self {
         let base_url = PUBLIC_API_URL_BASE.to_owned();
-        let url = format!(
-            "{}/models/{}:{}?key={}",
-            base_url, model, response_type, api_key
-        );
-        Self { url }
+        match response_type {
+            ResponseType::GenerateContent => Self {
+                url: format!(
+                    "{}/models/{}:{}?key={}",
+                    base_url, model, response_type, api_key
+                ),
+            },
+            ResponseType::GetModel => Self {
+                url: format!("{}/models/{}?key={}", base_url, model, api_key),
+            },
+            ResponseType::GetModelList => Self {
+                url: format!("{}/models?key={}", base_url, api_key),
+            },
+            _ => panic!("Unsupported response type: {:?}", response_type),
+        }
     }
-    pub fn new_from_region_project_id(
+    fn new_from_region_project_id(
         model: &Model,
         region: String,
         project_id: String,

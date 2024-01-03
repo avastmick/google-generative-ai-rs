@@ -30,7 +30,7 @@ Please see [contributing](CONTRIBUTING.md) for the rules; they are standard thou
 
 I do my best to release working code.
 
-Status today is: *"Happy path for both public and Vertex AI endpoints work for Gemini, but some things are missing."*
+Status today is: *"Happy path for both public and Vertex AI endpoints work for Gemini, but some things are NOT working. See Issue #12"*
 
 ## Outline tasks
 
@@ -38,7 +38,7 @@ Status today is: *"Happy path for both public and Vertex AI endpoints work for G
 - [X] Create the public API happy path for Gemini
 - [X] Create the Vertex AI (private) API happy path for Gemini
 - [X] Create basic error handling
+- [X] get - see: "<https://ai.google.dev/tutorials/rest_quickstart#get_model>" and "<https://ai.google.dev/tutorials/rest_quickstart#list_models>"
 - [ ] countTokens - see: "<https://ai.google.dev/tutorials/rest_quickstart#count_tokens>"
-- [ ] get - see: "<https://ai.google.dev/tutorials/rest_quickstart#get_model>"
 - [ ] function - see "<https://cloud.google.com/vertex-ai/docs/generative-ai/multimodal/function-calling>"
 - [ ] embedContent - see: "<https://ai.google.dev/tutorials/rest_quickstart#embedding>"
