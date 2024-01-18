@@ -7,7 +7,7 @@ license = "MIT"
 description = "An unofficial rust-based client library to interact with the Google Gemini generative AI API"
 repository = "https://github.com/avastmick/google-generative-ai-rs"
 readme = "README.md"
-keywords = ["google", "generative", "ai", "api", "gemini", "gemini-pro", "client"]
+keywords = ["google", "generative", "ai", "gemini", "client"]
 
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
