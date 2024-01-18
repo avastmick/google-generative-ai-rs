@@ -186,7 +186,7 @@ pub mod request {
         safety::{HarmBlockThreshold, HarmCategory},
         Content,
     };
-    #[derive(Debug, Clone, Serialize)]
+    #[derive(Debug, Clone, Deserialize, Serialize)]
     pub struct Request {
         pub contents: Vec<Content>,
         #[serde(skip_serializing_if = "Vec::is_empty")]
@@ -226,25 +226,25 @@ pub mod request {
         pub seconds: i32,
         pub nanos: i32,
     }
-    #[derive(Debug, Clone, Serialize)]
+    #[derive(Debug, Clone, Deserialize, Serialize)]
     pub struct Tools {
         #[serde(rename = "functionDeclarations")]
         pub function_declarations: Vec<FunctionDeclaration>,
     }
 
-    #[derive(Debug, Clone, Serialize)]
+    #[derive(Debug, Clone, Deserialize, Serialize)]
     pub struct FunctionDeclaration {
         pub name: String,
         pub description: String,
         pub parameters: serde_json::Value,
     }
 
-    #[derive(Debug, Clone, Serialize)]
+    #[derive(Debug, Clone, Deserialize, Serialize)]
     pub struct SafetySettings {
         pub category: HarmCategory,
         pub threshold: HarmBlockThreshold,
     }
-    #[derive(Debug, Clone, Serialize)]
+    #[derive(Debug, Clone, Deserialize, Serialize)]
     #[serde(rename_all = "camelCase")]
     pub struct GenerationConfig {
         pub temperature: Option<f32>,
