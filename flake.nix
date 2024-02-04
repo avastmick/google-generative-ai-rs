@@ -7,7 +7,6 @@
 
   outputs = { self, nixpkgs, utils, naersk }:
   let
-    pversion = "v0.5.14";
     systemBuildInputs = system: pkgs: {
       ${system} = [ pkgs.iconv pkgs.openssl ]  ++ 
       (if pkgs.lib.strings.hasInfix "$system" "darwin"
@@ -19,16 +18,10 @@
   let
     pkgs = import nixpkgs { inherit system; };
     naersk-lib = pkgs.callPackage naersk { };
-
-    src  =  pkgs.fetchzip {
-      name = "src";
-      url = "https://github.com/zurawiki/gptcommit/archive/refs/tags/${pversion}.tar.gz";
-      hash = "sha256-xjaFr1y2Fd7IWbJlegnIsfS5/oMJYd6QTnwp7IK17xM=";
-    };
   in
   {
     defaultPackage = naersk-lib.buildPackage  {
-      inherit src;
+      src = ./.;
       buildInputs = (systemBuildInputs system pkgs).${system};
     };
 
