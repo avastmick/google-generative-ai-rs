@@ -302,11 +302,10 @@ pub mod request {
 /// ```
 pub mod response {
     use core::fmt;
-    use std::pin::Pin;
     use futures::Stream;
     use reqwest_streams::error::StreamBodyError;
     use serde::Deserialize;
-
+    use std::pin::Pin;
 
     use super::{
         safety::{HarmCategory, HarmProbability},
@@ -325,11 +324,9 @@ pub mod response {
     #[derive(Default)]
     pub struct StreamedGeminiResponse {
         //pub streamed_candidates: Vec<GeminiResponse>,
-        pub response_stream: Option<Pin<Box<dyn Stream<Item = Result<serde_json::Value, StreamBodyError>> + Send>>>,
+        pub response_stream:
+            Option<Pin<Box<dyn Stream<Item = Result<serde_json::Value, StreamBodyError>> + Send>>>,
     }
-
-
-
 
     #[derive(Debug, Clone, Deserialize)]
     #[serde(rename_all = "camelCase")]

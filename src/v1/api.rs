@@ -1,10 +1,10 @@
 //! Manages the interaction with the REST API.
-use std::fmt;
-use std::time::Duration;
-use std::sync::Arc;
-use reqwest_streams::error::StreamBodyError;
-use tokio::sync::Mutex; // 注意：我们使用的是tokio的Mutex，它对异步代码友好
 use futures::stream::StreamExt;
+use reqwest_streams::error::StreamBodyError;
+use std::fmt;
+use std::sync::Arc;
+use std::time::Duration;
+use tokio::sync::Mutex; // 注意：我们使用的是tokio的Mutex，它对异步代码友好
 
 use futures::prelude::*;
 use gcp_auth::AuthenticationManager;
@@ -55,8 +55,6 @@ pub struct Client {
     pub project_id: Option<String>,
     pub response_type: ResponseType,
 }
-
-
 
 impl Client {
     /// Creates a default new public API client.
@@ -198,28 +196,25 @@ impl Client {
             Err(e) => Err(self.new_error_from_reqwest_error(e)),
         }
     }
-        // Define the function that accepts the stream and the consumer
+    // Define the function that accepts the stream and the consumer
     /// A streamed post request
     async fn get_streamed_post_result(
         &self,
         client: reqwest::Client,
         api_request: &Request,
     ) -> Result<StreamedGeminiResponse, GoogleAPIError> {
-
         //let token: gcp_auth::Token = self.get_gcp_authn_token().await?;
 
-        let result = self
-            .get_post_response(client, api_request, None)
-            .await;
+        let result = self.get_post_response(client, api_request, None).await;
 
         match result {
             Ok(response) => match response.status() {
                 reqwest::StatusCode::OK => {
                     // Wire to enable introspection on the response stream
-                    let json_stream = response.json_array_stream::<serde_json::Value>(2048);//TODO what is a good length?;
+                    let json_stream = response.json_array_stream::<serde_json::Value>(2048); //TODO what is a good length?;
 
                     Ok(StreamedGeminiResponse {
-                        response_stream : Some(json_stream),
+                        response_stream: Some(json_stream),
                     })
                 }
                 _ => Err(self.new_error_from_status_code(response.status())),
@@ -229,8 +224,10 @@ impl Client {
     }
 
     //consuming streaming response in async stream
-    pub async fn for_each_async<F, Fut>(stream: Pin<Box<dyn Stream<Item = Result<serde_json::Value, StreamBodyError>> + Send>>, consumer: F)
-    where
+    pub async fn for_each_async<F, Fut>(
+        stream: Pin<Box<dyn Stream<Item = Result<serde_json::Value, StreamBodyError>> + Send>>,
+        consumer: F,
+    ) where
         F: FnMut(GeminiResponse) -> Fut + Send + 'static,
         Fut: Future<Output = ()>,
     {
@@ -241,35 +238,41 @@ impl Client {
         // in the stream, handling each item as it's ready. Set `None` for unbounded concurrency,
         // or set a limit with `Some(n)`
 
-        stream.for_each_concurrent(None, | item:Result<serde_json::Value, StreamBodyError> | { 
-            let consumer = Arc::clone(&consumer);
-            async move {
-
-                let res = match item {
-                    Ok(result) => 
-                            Client::convert_json_value_to_response(&result).map_err(|e| GoogleAPIError {
+        stream
+            .for_each_concurrent(None, |item: Result<serde_json::Value, StreamBodyError>| {
+                let consumer = Arc::clone(&consumer);
+                async move {
+                    let res = match item {
+                        Ok(result) => {
+                            Client::convert_json_value_to_response(&result).map_err(|e| {
+                                GoogleAPIError {
+                                    message: format!(
+                                        "Failed to get JSON stream from request: {}",
+                                        e
+                                    ),
+                                    code: None,
+                                }
+                            })
+                        }
+                        Err(e) => Err(GoogleAPIError {
                             message: format!("Failed to get JSON stream from request: {}", e),
                             code: None,
-                            }
-                            ), 
-                    Err(e) => Err(GoogleAPIError {
-                            message: format!("Failed to get JSON stream from request: {}", e),
-                            code: None,
-                            }),
-                };
+                        }),
+                    };
 
-                match res {
-                    Ok(response) =>  { 
-                        let mut consumer = consumer.lock().await;
-                        consumer(response).await;
-                    },
-                    _ => (),
-                } 
-        }}).await;
+                    match res {
+                        Ok(response) => {
+                            let mut consumer = consumer.lock().await;
+                            consumer(response).await;
+                        }
+                        _ => (),
+                    }
+                }
+            })
+            .await;
 
         ();
     }
-
 
     /// Gets a ['reqwest::GeminiResponse'] from a post request.
     /// Parameters:
@@ -466,7 +469,7 @@ impl Url {
                     base_url, model, response_type, api_key
                 ),
             },
-            ResponseType::StreamGenerateContent=> Self {
+            ResponseType::StreamGenerateContent => Self {
                 url: format!(
                     "{}/models/{}:{}?key={}",
                     base_url, model, response_type, api_key

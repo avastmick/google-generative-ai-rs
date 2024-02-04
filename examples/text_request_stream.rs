@@ -16,11 +16,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
 
     let token = match env::var("API_KEY") {
-        Ok(v) =>  v,
-        Err(e ) => {
+        Ok(v) => v,
+        Err(e) => {
             let msg = "$API_KEY not found".to_string();
             panic!("{e:?}:{msg}");
-        },
+        }
     };
 
     // Either run as a standard text request or a stream generate content request
@@ -60,10 +60,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     if let Some(stream_response) = response.streamed() {
         if let Some(json_stream) = stream_response.response_stream {
-            Client::for_each_async(json_stream, move |repsonse:GeminiResponse| async move {
+            Client::for_each_async(json_stream, move |repsonse: GeminiResponse| async move {
                 let mut lock = stdout().lock();
-                write!(lock, "{}", repsonse.candidates[0].content.parts[0].text.clone().unwrap().as_str()).unwrap();
-            }).await
+                write!(
+                    lock,
+                    "{}",
+                    repsonse.candidates[0].content.parts[0]
+                        .text
+                        .clone()
+                        .unwrap()
+                        .as_str()
+                )
+                .unwrap();
+            })
+            .await
         }
     }
 
