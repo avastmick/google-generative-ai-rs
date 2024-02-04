@@ -1,10 +1,17 @@
 //! Manages the interaction with the REST API.
 use std::fmt;
 use std::time::Duration;
+use std::sync::Arc;
+use reqwest_streams::error::StreamBodyError;
+use tokio::sync::Mutex; // 注意：我们使用的是tokio的Mutex，它对异步代码友好
+use futures::stream::StreamExt;
 
 use futures::prelude::*;
 use gcp_auth::AuthenticationManager;
 use reqwest_streams::*;
+use serde_json;
+
+use std::pin::Pin;
 
 use crate::v1::errors::GoogleAPIError;
 use crate::v1::gemini::request::Request;
@@ -48,6 +55,9 @@ pub struct Client {
     pub project_id: Option<String>,
     pub response_type: ResponseType,
 }
+
+
+
 impl Client {
     /// Creates a default new public API client.
     pub fn new(api_key: String) -> Self {
@@ -83,7 +93,7 @@ impl Client {
         }
     }
     /// Create a new public API client for a specified model.
-    pub fn new_from_model_reponse_type(
+    pub fn new_from_model_response_type(
         model: Model,
         api_key: String,
         response_type: ResponseType,
@@ -188,54 +198,79 @@ impl Client {
             Err(e) => Err(self.new_error_from_reqwest_error(e)),
         }
     }
+        // Define the function that accepts the stream and the consumer
     /// A streamed post request
     async fn get_streamed_post_result(
         &self,
         client: reqwest::Client,
         api_request: &Request,
     ) -> Result<StreamedGeminiResponse, GoogleAPIError> {
-        let token: gcp_auth::Token = self.get_gcp_authn_token().await?;
+
+        //let token: gcp_auth::Token = self.get_gcp_authn_token().await?;
 
         let result = self
-            .get_post_response(client, api_request, Some(token.as_str()))
+            .get_post_response(client, api_request, None)
             .await;
 
         match result {
             Ok(response) => match response.status() {
                 reqwest::StatusCode::OK => {
                     // Wire to enable introspection on the response stream
-                    let mut streamed_reponse = StreamedGeminiResponse {
-                        streamed_candidates: vec![],
-                    };
-                    let mut response_stream = response.json_array_stream::<serde_json::Value>(2048); //TODO what is a good length?
-                    while let Some(json_value) =
-                        response_stream
-                            .try_next()
-                            .await
-                            .map_err(|e| GoogleAPIError {
-                                message: format!("Failed to get JSON stream from request: {}", e),
-                                code: None,
-                            })?
-                    {
-                        let res: GeminiResponse = Self::convert_json_value_to_response(&json_value)
-                            .map_err(|e| GoogleAPIError {
-                                message: format!(
-                                    "Failed to deserialize API response into v1::gemini::response::GeminiResponse: {}",
-                                    e
-                                ),
-                                code: None,
-                            })?;
-                        // TODO trap the "usageMetadata" too at the end of the stream
-                        streamed_reponse.streamed_candidates.push(res);
-                    }
+                    let json_stream = response.json_array_stream::<serde_json::Value>(2048);//TODO what is a good length?;
 
-                    Ok(streamed_reponse)
+                    Ok(StreamedGeminiResponse {
+                        response_stream : Some(json_stream),
+                    })
                 }
                 _ => Err(self.new_error_from_status_code(response.status())),
             },
             Err(e) => Err(self.new_error_from_reqwest_error(e)),
         }
     }
+
+    //consuming streaming response in async stream
+    pub async fn for_each_async<F, Fut>(stream: Pin<Box<dyn Stream<Item = Result<serde_json::Value, StreamBodyError>> + Send>>, consumer: F)
+    where
+        F: FnMut(GeminiResponse) -> Fut + Send + 'static,
+        Fut: Future<Output = ()>,
+    {
+        // Since the stream is already boxed and pinned, you can directly use it
+        let consumer = Arc::new(Mutex::new(consumer));
+
+        // Use the for_each_concurrent method to apply the consumer to each item
+        // in the stream, handling each item as it's ready. Set `None` for unbounded concurrency,
+        // or set a limit with `Some(n)`
+
+        stream.for_each_concurrent(None, | item:Result<serde_json::Value, StreamBodyError> | { 
+            let consumer = Arc::clone(&consumer);
+            async move {
+
+                let res = match item {
+                    Ok(result) => 
+                            Client::convert_json_value_to_response(&result).map_err(|e| GoogleAPIError {
+                            message: format!("Failed to get JSON stream from request: {}", e),
+                            code: None,
+                            }
+                            ), 
+                    Err(e) => Err(GoogleAPIError {
+                            message: format!("Failed to get JSON stream from request: {}", e),
+                            code: None,
+                            }),
+                };
+
+                match res {
+                    Ok(response) =>  { 
+                        let mut consumer = consumer.lock().await;
+                        consumer(response).await;
+                    },
+                    _ => (),
+                } 
+        }}).await;
+
+        ();
+    }
+
+
     /// Gets a ['reqwest::GeminiResponse'] from a post request.
     /// Parameters:
     /// * client - the ['reqwest::Client'] to use
@@ -426,6 +461,12 @@ impl Url {
         let base_url = PUBLIC_API_URL_BASE.to_owned();
         match response_type {
             ResponseType::GenerateContent => Self {
+                url: format!(
+                    "{}/models/{}:{}?key={}",
+                    base_url, model, response_type, api_key
+                ),
+            },
+            ResponseType::StreamGenerateContent=> Self {
                 url: format!(
                     "{}/models/{}:{}?key={}",
                     base_url, model, response_type, api_key
