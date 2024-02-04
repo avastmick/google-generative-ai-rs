@@ -260,18 +260,13 @@ impl Client {
                         }),
                     };
 
-                    match res {
-                        Ok(response) => {
-                            let mut consumer = consumer.lock().await;
-                            consumer(response).await;
-                        }
-                        _ => (),
+                    if let Ok(response) = res {
+                        let mut consumer = consumer.lock().await;
+                        consumer(response).await;
                     }
                 }
             })
             .await;
-
-        ();
     }
 
     /// Gets a ['reqwest::GeminiResponse'] from a post request.
@@ -370,6 +365,7 @@ impl Client {
 
     /// Gets a GCP authn token.
     /// See [`AuthenticationManager::new`](https://docs.rs/gcp-auth/0.1.0/gcp_auth/struct.AuthenticationManager.html) for details of approach.
+    #[allow(dead_code)]
     async fn get_gcp_authn_token(&self) -> Result<gcp_auth::Token, GoogleAPIError> {
         let authentication_manager =
             AuthenticationManager::new()

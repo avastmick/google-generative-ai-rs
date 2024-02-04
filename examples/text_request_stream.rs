@@ -56,7 +56,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let response = client.post(30, &txt_request).await?;
 
-    println!("{}", "output streaming content");
+    println!("output streaming content");
 
     if let Some(stream_response) = response.streamed() {
         if let Some(json_stream) = stream_response.response_stream {
