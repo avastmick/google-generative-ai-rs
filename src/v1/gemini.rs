@@ -3,7 +3,6 @@ use core::fmt;
 use serde::{Deserialize, Serialize};
 
 use self::request::{FileData, InlineData, VideoMetadata};
-
 /// Defines the type of response expected from the API.
 /// Used at the end of the API URL for the Gemini API.
 #[derive(Debug, Clone, Default, PartialEq)]
@@ -302,19 +301,35 @@ pub mod request {
 /// }
 /// ```
 pub mod response {
+    use core::fmt;
+    use futures::Stream;
+    use reqwest_streams::error::StreamBodyError;
     use serde::Deserialize;
+    use std::pin::Pin;
 
     use super::{
         safety::{HarmCategory, HarmProbability},
         Content,
     };
 
-    // The streamGenerateContent response
-    #[derive(Debug, Default, Deserialize)]
-    #[serde(rename_all = "camelCase")]
-    pub struct StreamedGeminiResponse {
-        pub streamed_candidates: Vec<GeminiResponse>,
+    impl fmt::Debug for StreamedGeminiResponse {
+        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            // Implement your formatting here.
+            // For example:
+            write!(f, "StreamedGeminiResponse {{ /* stream values */ }}")
+        }
     }
+
+    type ResponseJsonStream =
+        Pin<Box<dyn Stream<Item = Result<serde_json::Value, StreamBodyError>> + Send>>;
+
+    // The streamGenerateContent response
+    #[derive(Default)]
+    pub struct StreamedGeminiResponse {
+        //pub streamed_candidates: Vec<GeminiResponse>,
+        pub response_stream: Option<ResponseJsonStream>,
+    }
+
     #[derive(Debug, Clone, Deserialize)]
     #[serde(rename_all = "camelCase")]
     pub struct GeminiResponse {
