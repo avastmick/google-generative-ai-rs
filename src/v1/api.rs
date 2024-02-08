@@ -1,17 +1,22 @@
 //! Manages the interaction with the REST API.
-use std::fmt;
-use std::time::Duration;
-
 use futures::prelude::*;
+use futures::stream::StreamExt;
 use gcp_auth::AuthenticationManager;
+use reqwest_streams::error::StreamBodyError;
 use reqwest_streams::*;
+use serde_json;
+use std::fmt;
+use std::pin::Pin;
+use std::sync::Arc;
+use std::time::Duration;
+use tokio::sync::Mutex; // 注意：我们使用的是tokio的Mutex，它对异步代码友好
 
 use crate::v1::errors::GoogleAPIError;
 use crate::v1::gemini::request::Request;
 use crate::v1::gemini::response::GeminiResponse;
 use crate::v1::gemini::Model;
 
-use super::gemini::response::StreamedGeminiResponse;
+use super::gemini::response::{StreamedGeminiResponse, TokenCount};
 use super::gemini::{ModelInformation, ModelInformationList, ResponseType};
 
 const PUBLIC_API_URL_BASE: &str = "https://generativelanguage.googleapis.com/v1";
@@ -24,6 +29,7 @@ const GCP_API_AUTH_SCOPE: &str = "https://www.googleapis.com/auth/cloud-platform
 pub enum PostResult {
     Rest(GeminiResponse),
     Streamed(StreamedGeminiResponse),
+    Count(TokenCount),
 }
 impl PostResult {
     pub fn rest(self) -> Option<GeminiResponse> {
@@ -38,6 +44,12 @@ impl PostResult {
             _ => None,
         }
     }
+    pub fn count(self) -> Option<TokenCount> {
+        match self {
+            PostResult::Count(response) => Some(response),
+            _ => None,
+        }
+    }
 }
 
 /// Manages the specific API connection
@@ -48,6 +60,7 @@ pub struct Client {
     pub project_id: Option<String>,
     pub response_type: ResponseType,
 }
+
 impl Client {
     /// Creates a default new public API client.
     pub fn new(api_key: String) -> Self {
@@ -83,7 +96,7 @@ impl Client {
         }
     }
     /// Create a new public API client for a specified model.
-    pub fn new_from_model_reponse_type(
+    pub fn new_from_model_response_type(
         model: Model,
         api_key: String,
         response_type: ResponseType,
@@ -97,7 +110,7 @@ impl Client {
             response_type,
         }
     }
-    /// Create a new private API client using the default model, `Gemini-pro`.
+    /// Create a new private API client (Vertex AI) using the default model, `Gemini-pro`.
     ///
     /// Note: the current version of the Vertex API only supports streamed responses. A call to a 'generateContent' will return a '404' error.
     ///
@@ -105,18 +118,29 @@ impl Client {
     /// * region - the GCP region to use
     /// * project_id - the GCP account project_id to use
     pub fn new_from_region_project_id(region: String, project_id: String) -> Self {
+        Client::new_from_region_project_id_response_type(
+            region,
+            project_id,
+            ResponseType::StreamGenerateContent,
+        )
+    }
+    pub fn new_from_region_project_id_response_type(
+        region: String,
+        project_id: String,
+        response_type: ResponseType,
+    ) -> Self {
         let url = Url::new_from_region_project_id(
             &Model::default(),
             region.clone(),
             project_id.clone(),
-            &ResponseType::StreamGenerateContent,
+            &response_type,
         );
         Self {
             url: url.url,
             model: Model::default(),
             region: Some(region),
             project_id: Some(project_id),
-            response_type: ResponseType::StreamGenerateContent,
+            response_type,
         }
     }
     /// Create a new private API client.
@@ -159,6 +183,10 @@ impl Client {
                 let result = self.get_streamed_post_result(client, api_request).await?;
                 Ok(PostResult::Streamed(result))
             }
+            ResponseType::CountTokens => {
+                let result = self.get_token_count(client, api_request).await?;
+                Ok(PostResult::Count(result))
+            }
             _ => Err(GoogleAPIError {
                 message: format!("Unsupported response type: {:?}", self.response_type),
                 code: None,
@@ -172,7 +200,11 @@ impl Client {
         client: reqwest::Client,
         api_request: &Request,
     ) -> Result<GeminiResponse, GoogleAPIError> {
-        let result = self.get_post_response(client, api_request, None).await;
+        let token_option = self.get_auth_token_option().await?;
+
+        let result = self
+            .get_post_response(client, api_request, token_option)
+            .await;
 
         match result {
             Ok(response) => match response.status() {
@@ -188,54 +220,109 @@ impl Client {
             Err(e) => Err(self.new_error_from_reqwest_error(e)),
         }
     }
+    // Define the function that accepts the stream and the consumer
     /// A streamed post request
     async fn get_streamed_post_result(
         &self,
         client: reqwest::Client,
         api_request: &Request,
     ) -> Result<StreamedGeminiResponse, GoogleAPIError> {
-        let token: gcp_auth::Token = self.get_gcp_authn_token().await?;
+        let token_option = self.get_auth_token_option().await?;
 
         let result = self
-            .get_post_response(client, api_request, Some(token.as_str()))
+            .get_post_response(client, api_request, token_option)
             .await;
 
         match result {
             Ok(response) => match response.status() {
                 reqwest::StatusCode::OK => {
                     // Wire to enable introspection on the response stream
-                    let mut streamed_reponse = StreamedGeminiResponse {
-                        streamed_candidates: vec![],
-                    };
-                    let mut response_stream = response.json_array_stream::<serde_json::Value>(2048); //TODO what is a good length?
-                    while let Some(json_value) =
-                        response_stream
-                            .try_next()
-                            .await
-                            .map_err(|e| GoogleAPIError {
-                                message: format!("Failed to get JSON stream from request: {}", e),
-                                code: None,
-                            })?
-                    {
-                        let res: GeminiResponse = Self::convert_json_value_to_response(&json_value)
-                            .map_err(|e| GoogleAPIError {
-                                message: format!(
-                                    "Failed to deserialize API response into v1::gemini::response::GeminiResponse: {}",
-                                    e
-                                ),
-                                code: None,
-                            })?;
-                        // TODO trap the "usageMetadata" too at the end of the stream
-                        streamed_reponse.streamed_candidates.push(res);
-                    }
+                    let json_stream = response.json_array_stream::<serde_json::Value>(2048); //TODO what is a good length?;
 
-                    Ok(streamed_reponse)
+                    Ok(StreamedGeminiResponse {
+                        response_stream: Some(json_stream),
+                    })
                 }
                 _ => Err(self.new_error_from_status_code(response.status())),
             },
             Err(e) => Err(self.new_error_from_reqwest_error(e)),
         }
     }
+
+    /// If this is a Vertex AI request, get the token from the GCP authn library, if it is correctly configured, else None.
+    async fn get_auth_token_option(&self) -> Result<Option<String>, GoogleAPIError> {
+        let token_option = if self.project_id.is_some() && self.region.is_some() {
+            let token = self.get_gcp_authn_token().await?.as_str().to_string();
+            Some(token)
+        } else {
+            None
+        };
+        Ok(token_option)
+    }
+
+    /// Applies an asynchronous operation to each item in a stream, potentially concurrently.
+    ///
+    /// This function retrieves each item from the provided stream, processes it using the given
+    /// consumer callback, and awaits the futures produced by the consumer. The concurrency level
+    /// is unbounded, meaning items will be processed as soon as they are ready without a limit.
+    ///
+    /// # Type Parameters
+    ///
+    /// - `F`: The type of the consumer closure. It must accept a `GeminiResponse` and return a future.
+    /// - `Fut`: The future type returned by the `consumer` closure. It must resolve to `()`.
+    ///
+    /// # Parameters
+    ///
+    /// - `stream`: A `Pin<Box<dyn Stream>>` that produces items of type `Result<serde_json::Value, StreamBodyError>`.
+    ///   The stream already needs to be pinned and boxed when passed into this function.
+    /// - `consumer`: A mutable closure that is called for each `GeminiResponse`. The results of the
+    ///   closure are futures which will be awaited to completion. This closure needs to be `Send` and
+    ///   `'static` to allow for concurrent and potentially multi-threaded execution.
+    pub async fn for_each_async<F, Fut>(
+        stream: Pin<Box<dyn Stream<Item = Result<serde_json::Value, StreamBodyError>> + Send>>,
+        consumer: F,
+    ) where
+        F: FnMut(GeminiResponse) -> Fut + Send + 'static,
+        Fut: Future<Output = ()>,
+    {
+        // Since the stream is already boxed and pinned, you can directly use it
+        let consumer = Arc::new(Mutex::new(consumer));
+
+        // Use the for_each_concurrent method to apply the consumer to each item
+        // in the stream, handling each item as it's ready. Set `None` for unbounded concurrency,
+        // or set a limit with `Some(n)`
+
+        stream
+            .for_each_concurrent(None, |item: Result<serde_json::Value, StreamBodyError>| {
+                let consumer = Arc::clone(&consumer);
+                async move {
+                    let res = match item {
+                        Ok(result) => {
+                            Client::convert_json_value_to_response(&result).map_err(|e| {
+                                GoogleAPIError {
+                                    message: format!(
+                                        "Failed to get JSON stream from request: {}",
+                                        e
+                                    ),
+                                    code: None,
+                                }
+                            })
+                        }
+                        Err(e) => Err(GoogleAPIError {
+                            message: format!("Failed to get JSON stream from request: {}", e),
+                            code: None,
+                        }),
+                    };
+
+                    if let Ok(response) = res {
+                        let mut consumer = consumer.lock().await;
+                        consumer(response).await;
+                    }
+                }
+            })
+            .await;
+    }
+
     /// Gets a ['reqwest::GeminiResponse'] from a post request.
     /// Parameters:
     /// * client - the ['reqwest::Client'] to use
@@ -245,19 +332,49 @@ impl Client {
         &self,
         client: reqwest::Client,
         api_request: &Request,
-        authn_token: Option<&str>,
+        authn_token: Option<String>,
     ) -> Result<reqwest::Response, reqwest::Error> {
         let mut request_builder = client
             .post(&self.url)
             .header(reqwest::header::USER_AGENT, env!("CARGO_CRATE_NAME"));
 
+        // If a GCP authn token is provided, use it
         if let Some(token) = authn_token {
             request_builder = request_builder.bearer_auth(token);
         }
 
         request_builder.json(&api_request).send().await
     }
-    // TODO countTokens - see: "https://ai.google.dev/tutorials/rest_quickstart#count_tokens"
+    // Count Tokens - see: "https://ai.google.dev/tutorials/rest_quickstart#count_tokens"
+    //
+    /// Parameters:
+    /// * timeout - the timeout in seconds
+    /// * api_request - the request to send to check token count
+    pub async fn get_token_count(
+        &self,
+        client: reqwest::Client,
+        api_request: &Request,
+    ) -> Result<TokenCount, GoogleAPIError> {
+        let token_option = self.get_auth_token_option().await?;
+
+        let result = self
+            .get_post_response(client, api_request, token_option)
+            .await;
+
+        match result {
+            Ok(response) => match response.status() {
+                reqwest::StatusCode::OK => Ok(response.json::<TokenCount>().await.map_err(|e|GoogleAPIError {
+                message: format!(
+                        "Failed to deserialize API response into v1::gemini::response::TokenCount: {}",
+                        e
+                    ),
+                code: None,
+            })?),
+                _ => Err(self.new_error_from_status_code(response.status())),
+            },
+            Err(e) => Err(self.new_error_from_reqwest_error(e)),
+        }
+    }
 
     /// Get for the url specified in 'self'
     async fn get(
@@ -431,11 +548,23 @@ impl Url {
                     base_url, model, response_type, api_key
                 ),
             },
+            ResponseType::StreamGenerateContent => Self {
+                url: format!(
+                    "{}/models/{}:{}?key={}",
+                    base_url, model, response_type, api_key
+                ),
+            },
             ResponseType::GetModel => Self {
                 url: format!("{}/models/{}?key={}", base_url, model, api_key),
             },
             ResponseType::GetModelList => Self {
                 url: format!("{}/models?key={}", base_url, api_key),
+            },
+            ResponseType::CountTokens => Self {
+                url: format!(
+                    "{}/models/{}:{}?key={}",
+                    base_url, model, response_type, api_key
+                ),
             },
             _ => panic!("Unsupported response type: {:?}", response_type),
         }

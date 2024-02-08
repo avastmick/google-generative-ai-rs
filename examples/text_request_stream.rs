@@ -3,31 +3,34 @@ use std::io::{stdout, Write};
 
 use google_generative_ai_rs::v1::{
     api::Client,
-    gemini::{request::Request, response::GeminiResponse, Content, Part, Role},
+    gemini::{request::Request, response::GeminiResponse, Content, Part, ResponseType, Role},
 };
 
-/// Simple text request using Vertex AI API endpoint and GCP application default credentials (ADC) authn
-///
-/// You'll need to install the GCP cli tools and set up your GCP project and region.
-///
-/// The ensure you locally authenticated with GCP using the following commands:
-/// ```
-/// gcloud init
-/// gcloud auth application-default login
-/// ```
-/// Note: right now there seems to be no non-streamed URL for the Vertex AI endpoint, so we're using the streamed URL only
-///
+/// Simple text request using the public API and an API key for authn
 /// To run:
 /// ```
-/// GCP_REGION_NAME=[THE REGION WHERE YOUR ENDPOINT IS HOSTED] GCP_PROJECT_ID=[YOUR GCP PROJECT_ID] RUST_LOG=info cargo run --package google-generative-ai-rs --example vertex_text_request
+/// API_KEY=[YOUR_API_KEY] RUST_LOG=info cargo run --package google-generative-ai-rs  --example text_request
 /// ``
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
-    let region = env::var("GCP_REGION_NAME").unwrap().to_string();
-    let project_id = env::var("GCP_PROJECT_ID").unwrap().to_string();
 
-    let client = Client::new_from_region_project_id(region.to_string(), project_id.to_string());
+    let token = match env::var("API_KEY") {
+        Ok(v) => v,
+        Err(e) => {
+            let msg = "$API_KEY not found".to_string();
+            panic!("{e:?}:{msg}");
+        }
+    };
+
+    // Either run as a standard text request or a stream generate content request
+    let client = Client::new_from_model_response_type(
+        google_generative_ai_rs::v1::gemini::Model::GeminiPro,
+        token.clone(),
+        ResponseType::StreamGenerateContent,
+    );
+
+    println!("token {:#?}", token);
 
     let txt_request = Request {
         contents: vec![Content {
