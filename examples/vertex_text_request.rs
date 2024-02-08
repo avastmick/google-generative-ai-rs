@@ -1,9 +1,9 @@
-use log::info;
 use std::env;
+use std::io::{stdout, Write};
 
 use google_generative_ai_rs::v1::{
     api::Client,
-    gemini::{request::Request, Content, Part, Role},
+    gemini::{request::Request, response::GeminiResponse, Content, Part, Role},
 };
 
 /// Simple text request using Vertex AI API endpoint and GCP application default credentials (ADC) authn
@@ -46,7 +46,26 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let response = client.post(30, &txt_request).await?;
 
-    info!("{:#?}", response);
+    println!("output streaming content");
+
+    if let Some(stream_response) = response.streamed() {
+        if let Some(json_stream) = stream_response.response_stream {
+            Client::for_each_async(json_stream, move |response: GeminiResponse| async move {
+                let mut lock = stdout().lock();
+                write!(
+                    lock,
+                    "{}",
+                    response.candidates[0].content.parts[0]
+                        .text
+                        .clone()
+                        .unwrap()
+                        .as_str()
+                )
+                .unwrap();
+            })
+            .await
+        }
+    }
 
     Ok(())
 }

@@ -12,6 +12,7 @@ pub enum ResponseType {
     StreamGenerateContent,
     GetModel,
     GetModelList,
+    CountTokens,
     EmbedContent,
     BatchEmbedContents,
 }
@@ -22,6 +23,7 @@ impl fmt::Display for ResponseType {
             ResponseType::StreamGenerateContent => f.write_str("streamGenerateContent"),
             ResponseType::GetModel => f.write_str(""), // No display as its already in the URL
             ResponseType::GetModelList => f.write_str(""), // No display as its already in the URL
+            ResponseType::CountTokens => f.write_str("countTokens"),
             ResponseType::EmbedContent => f.write_str("embedContent"),
             ResponseType::BatchEmbedContents => f.write_str("batchEmbedContents"),
         }
@@ -322,6 +324,13 @@ pub mod response {
 
     type ResponseJsonStream =
         Pin<Box<dyn Stream<Item = Result<serde_json::Value, StreamBodyError>> + Send>>;
+
+    /// The token count for a given prompt.
+    #[derive(Debug, Default, Deserialize)]
+    #[serde(rename_all = "camelCase")]
+    pub struct TokenCount {
+        pub total_tokens: u64,
+    }
 
     // The streamGenerateContent response
     #[derive(Default)]

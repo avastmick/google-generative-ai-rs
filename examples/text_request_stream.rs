@@ -32,13 +32,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("token {:#?}", token);
 
-    // See Issue #12 - currently this gives a '403 Forbidden' error
-    // let client = Client::new_from_model_reponse_type(
-    //     google_generative_ai_rs::v1::gemini::Model::GeminiPro,
-    //     env::var("API_KEY").unwrap().to_string(),
-    //     google_generative_ai_rs::v1::gemini::ResponseType::StreamGenerateContent,
-    // );
-
     let txt_request = Request {
         contents: vec![Content {
             role: Role::User,
@@ -60,12 +53,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     if let Some(stream_response) = response.streamed() {
         if let Some(json_stream) = stream_response.response_stream {
-            Client::for_each_async(json_stream, move |repsonse: GeminiResponse| async move {
+            Client::for_each_async(json_stream, move |response: GeminiResponse| async move {
                 let mut lock = stdout().lock();
                 write!(
                     lock,
                     "{}",
-                    repsonse.candidates[0].content.parts[0]
+                    response.candidates[0].content.parts[0]
                         .text
                         .clone()
                         .unwrap()
