@@ -30,7 +30,7 @@ Please see [contributing](CONTRIBUTING.md) for the rules; they are standard thou
 
 I do my best to release working code.
 
-Status today is: *"Happy path for both public and Vertex AI endpoints work for Gemini, but some things are NOT working. See Issue #12"*
+Status today is: *"Happy path for both public and Vertex AI endpoints work for Gemini, but some things may be fragile."*
 
 ## Outline tasks
 

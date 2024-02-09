@@ -16,6 +16,8 @@ Cargo.lock
 # Sensitive or local environment variables
 .env
 
-# Added by cargo
+# Local test files
+request.json
 
+# Added by cargo
 /target

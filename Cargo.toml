@@ -1,6 +1,6 @@
 [package]
 name = "google-generative-ai-rs"
-version = "0.2.1"
+version = "0.2.2"
 edition = "2021"
 authors = ["Mick Clarke <avastmick@outlook.com>"]
 license = "MIT"
