@@ -1,15 +1,13 @@
-//! Manages the interaction with the REST API.
+//! Manages the interaction with the REST API for the Gemini API.
 use futures::prelude::*;
 use futures::stream::StreamExt;
-use gcp_auth::AuthenticationManager;
 use reqwest_streams::error::StreamBodyError;
 use reqwest_streams::*;
 use serde_json;
-use std::fmt;
 use std::pin::Pin;
 use std::sync::Arc;
 use std::time::Duration;
-use tokio::sync::Mutex; // 注意：我们使用的是tokio的Mutex，它对异步代码友好
+use tokio::sync::Mutex;
 
 use crate::v1::errors::GoogleAPIError;
 use crate::v1::gemini::request::Request;
@@ -20,9 +18,6 @@ use super::gemini::response::{StreamedGeminiResponse, TokenCount};
 use super::gemini::{ModelInformation, ModelInformationList, ResponseType};
 
 const PUBLIC_API_URL_BASE: &str = "https://generativelanguage.googleapis.com/v1";
-const VERTEX_AI_API_URL_BASE: &str = "https://{region}-aiplatform.googleapis.com/v1";
-
-const GCP_API_AUTH_SCOPE: &str = "https://www.googleapis.com/auth/cloud-platform";
 
 /// Enables a streamed or non-streamed response to be returned from the API.
 #[derive(Debug)]
@@ -54,13 +49,16 @@ impl PostResult {
 
 /// Manages the specific API connection
 pub struct Client {
-    url: String,
+    pub url: String,
     pub model: Model,
     pub region: Option<String>,
     pub project_id: Option<String>,
     pub response_type: ResponseType,
 }
 
+/// Implements the functions for the API client.
+/// TODO: This is getting unwieldy. We need to refactor this into a more manageable state.
+///         See Issue #26 - 'Code tidy and improvement'
 impl Client {
     /// Creates a default new public API client.
     pub fn new(api_key: String) -> Self {
@@ -110,63 +108,7 @@ impl Client {
             response_type,
         }
     }
-    /// Create a new private API client (Vertex AI) using the default model, `Gemini-pro`.
-    ///
-    /// Note: the current version of the Vertex API only supports streamed responses. A call to a 'generateContent' will return a '404' error.
-    ///
-    /// Parameters:
-    /// * region - the GCP region to use
-    /// * project_id - the GCP account project_id to use
-    pub fn new_from_region_project_id(region: String, project_id: String) -> Self {
-        Client::new_from_region_project_id_response_type(
-            region,
-            project_id,
-            ResponseType::StreamGenerateContent,
-        )
-    }
-    pub fn new_from_region_project_id_response_type(
-        region: String,
-        project_id: String,
-        response_type: ResponseType,
-    ) -> Self {
-        let url = Url::new_from_region_project_id(
-            &Model::default(),
-            region.clone(),
-            project_id.clone(),
-            &response_type,
-        );
-        Self {
-            url: url.url,
-            model: Model::default(),
-            region: Some(region),
-            project_id: Some(project_id),
-            response_type,
-        }
-    }
-    /// Create a new private API client.
-    /// Parameters:
-    /// * model - the Gemini model to use
-    /// * region - the GCP region to use
-    /// * project_id - the GCP account project_id to use
-    pub fn new_from_model_region_project_id(
-        model: Model,
-        region: String,
-        project_id: String,
-    ) -> Self {
-        let url = Url::new_from_region_project_id(
-            &model,
-            region.clone(),
-            project_id.clone(),
-            &ResponseType::StreamGenerateContent,
-        );
-        Self {
-            url: url.url,
-            model,
-            region: Some(region),
-            project_id: Some(project_id),
-            response_type: ResponseType::StreamGenerateContent,
-        }
-    }
+
     // post
     pub async fn post(
         &self,
@@ -247,17 +189,6 @@ impl Client {
             },
             Err(e) => Err(self.new_error_from_reqwest_error(e)),
         }
-    }
-
-    /// If this is a Vertex AI request, get the token from the GCP authn library, if it is correctly configured, else None.
-    async fn get_auth_token_option(&self) -> Result<Option<String>, GoogleAPIError> {
-        let token_option = if self.project_id.is_some() && self.region.is_some() {
-            let token = self.get_gcp_authn_token().await?.as_str().to_string();
-            Some(token)
-        } else {
-            None
-        };
-        Ok(token_option)
     }
 
     /// Applies an asynchronous operation to each item in a stream, potentially concurrently.
@@ -447,26 +378,6 @@ impl Client {
 
     // TODO embedContent - see: "https://ai.google.dev/tutorials/rest_quickstart#embedding"
 
-    /// Gets a GCP authn token.
-    /// See [`AuthenticationManager::new`](https://docs.rs/gcp-auth/0.1.0/gcp_auth/struct.AuthenticationManager.html) for details of approach.
-    async fn get_gcp_authn_token(&self) -> Result<gcp_auth::Token, GoogleAPIError> {
-        let authentication_manager =
-            AuthenticationManager::new()
-                .await
-                .map_err(|e| GoogleAPIError {
-                    message: format!("Failed to create AuthenticationManager: {}", e),
-                    code: None,
-                })?;
-        let scopes = &[GCP_API_AUTH_SCOPE];
-        let token = authentication_manager
-            .get_token(scopes)
-            .await
-            .map_err(|e| GoogleAPIError {
-                message: format!("Failed to generate authentication token: {}", e),
-                code: None,
-            })?;
-        Ok(token)
-    }
     /// The current version of the Vertex API only supports streamed responses, so
     /// in order to handle any issues we use a serde_json::Value and then convert to a Gemini [`Candidate`].
     fn convert_json_value_to_response(
@@ -505,41 +416,16 @@ impl Client {
     }
 }
 
-/// Ensuring there is no leakage of secrets
-impl fmt::Display for Client {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if self.region.is_some() && self.project_id.is_some() {
-            write!(
-                f,
-                "GenerativeAiClient {{ url: {:?}, model: {:?}, region: {:?}, project_id: {:?} }}",
-                self.url, self.model, self.region, self.project_id
-            )
-        } else {
-            write!(
-                f,
-                "GenerativeAiClient {{ url: {:?}, model: {:?}, region: {:?}, project_id: {:?} }}",
-                Url::new(
-                    &self.model,
-                    "*************".to_string(),
-                    &self.response_type
-                ),
-                self.model,
-                self.region,
-                self.project_id
-            )
-        }
-    }
-}
 /// There are two different URLs for the API, depending on whether the model is public or private.
 /// Authn for public models is via an API key, while authn for private models is via application default credentials (ADC).
 /// The public API URL is in the form of: https://generativelanguage.googleapis.com/v1/models/{model}:{generateContent|streamGenerateContent}
 /// The Vertex AI API URL is in the form of: https://{region}-aiplatform.googleapis.com/v1/projects/{project_id}/locations/{region}/publishers/google/models/{model}:{streamGenerateContent}
 #[derive(Debug)]
-struct Url {
-    url: String,
+pub(crate) struct Url {
+    pub url: String,
 }
 impl Url {
-    fn new(model: &Model, api_key: String, response_type: &ResponseType) -> Self {
+    pub(crate) fn new(model: &Model, api_key: String, response_type: &ResponseType) -> Self {
         let base_url = PUBLIC_API_URL_BASE.to_owned();
         match response_type {
             ResponseType::GenerateContent => Self {
@@ -569,22 +455,6 @@ impl Url {
             _ => panic!("Unsupported response type: {:?}", response_type),
         }
     }
-    fn new_from_region_project_id(
-        model: &Model,
-        region: String,
-        project_id: String,
-        response_type: &ResponseType,
-    ) -> Self {
-        let base_url = VERTEX_AI_API_URL_BASE
-            .to_owned()
-            .replace("{region}", &region);
-
-        let url = format!(
-            "{}/projects/{}/locations/{}/publishers/google/models/{}:{}",
-            base_url, project_id, region, model, response_type,
-        );
-        Self { url }
-    }
 }
 
 #[cfg(test)]
@@ -602,31 +472,6 @@ mod tests {
         assert_eq!(error.message, "HTTP Error: 400: Bad Request");
         assert_eq!(error.code, Some(status_code));
     }
-    #[test]
-    fn test_new_from_region_project_id() {
-        let region = String::from("us-central1");
-        let project_id = String::from("my-project");
-        let client = Client::new_from_region_project_id(region.clone(), project_id.clone());
-
-        assert_eq!(client.region, Some(region));
-        assert_eq!(client.project_id, Some(project_id));
-    }
-
-    #[test]
-    fn test_new_from_model_region_project_id() {
-        let model = Model::default();
-        let region = String::from("us-central1");
-        let project_id = String::from("my-project");
-        let client = Client::new_from_model_region_project_id(
-            model.clone(),
-            region.clone(),
-            project_id.clone(),
-        );
-
-        assert_eq!(client.model, model);
-        assert_eq!(client.region, Some(region));
-        assert_eq!(client.project_id, Some(project_id));
-    }
 
     #[test]
     fn test_url_new() {
@@ -639,30 +484,6 @@ mod tests {
             format!(
                 "{}/models/{}:generateContent?key={}",
                 PUBLIC_API_URL_BASE, model, api_key
-            )
-        );
-    }
-
-    #[test]
-    fn test_url_new_from_region_project_id() {
-        let model = Model::default();
-        let region = String::from("us-central1");
-        let project_id = String::from("my-project");
-        let url = Url::new_from_region_project_id(
-            &model,
-            region.clone(),
-            project_id.clone(),
-            &ResponseType::StreamGenerateContent,
-        );
-
-        assert_eq!(
-            url.url,
-            format!(
-                "{}/projects/{}/locations/{}/publishers/google/models/{}:streamGenerateContent",
-                VERTEX_AI_API_URL_BASE.replace("{region}", &region),
-                project_id,
-                region,
-                model
             )
         );
     }
