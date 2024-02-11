@@ -187,6 +187,8 @@ pub mod request {
         safety::{HarmBlockThreshold, HarmCategory},
         Content,
     };
+
+    /// Holds the data to be used for a specific text request
     #[derive(Debug, Clone, Deserialize, Serialize)]
     pub struct Request {
         pub contents: Vec<Content>,
@@ -198,6 +200,28 @@ pub mod request {
         #[serde(skip_serializing_if = "Option::is_none")]
         #[serde(default, rename = "generationConfig")]
         pub generation_config: Option<GenerationConfig>,
+    }
+    impl Request {
+        /// Gets the total character count of the prompt.
+        /// As per the Gemini API, "Text input is charged by every 1,000 characters of input (prompt).
+        ///     Characters are counted by UTF-8 code points and white space is excluded from the count."
+        /// See: https://cloud.google.com/vertex-ai/pricing
+        ///
+        /// Returns the total character count of the prompt as per the Gemini API.
+        pub fn get_prompt_character_count(&self) -> usize {
+            let mut text_count = 0;
+            for content in &self.contents {
+                for part in &content.parts {
+                    if let Some(text) = &part.text {
+                        // Exclude white space from the count
+                        let num_chars = bytecount::num_chars(text.as_bytes());
+                        let num_spaces = bytecount::count(text.as_bytes(), b' ');
+                        text_count += num_chars - num_spaces;
+                    }
+                }
+            }
+            text_count
+        }
     }
     #[derive(Debug, Clone, Deserialize, Serialize)]
     #[serde(rename_all = "camelCase")]
@@ -335,7 +359,6 @@ pub mod response {
     // The streamGenerateContent response
     #[derive(Default)]
     pub struct StreamedGeminiResponse {
-        //pub streamed_candidates: Vec<GeminiResponse>,
         pub response_stream: Option<ResponseJsonStream>,
     }
 
@@ -345,6 +368,23 @@ pub mod response {
         pub candidates: Vec<Candidate>,
         pub prompt_feedback: Option<PromptFeedback>,
         pub usage_metadata: Option<UsageMetadata>,
+    }
+    impl GeminiResponse {
+        /// Returns the total character count of the response as per the Gemini API.
+        pub fn get_response_character_count(&self) -> usize {
+            let mut text_count = 0;
+            for candidate in &self.candidates {
+                for content in &candidate.content.parts {
+                    if let Some(text) = &content.text {
+                        // Exclude white space from the count
+                        let num_chars = bytecount::num_chars(text.as_bytes());
+                        let num_spaces = bytecount::count(text.as_bytes(), b' ');
+                        text_count += num_chars - num_spaces;
+                    }
+                }
+            }
+            text_count
+        }
     }
     #[derive(Debug, Clone, Deserialize)]
     #[serde(rename_all = "camelCase")]
