@@ -21,3 +21,8 @@ request.json
 
 # Added by cargo
 /target
+
+# Local OS files
+.DS_Store
+Thumbs.db
+
