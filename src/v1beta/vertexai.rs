@@ -6,8 +6,8 @@ use super::{
     api::{Client, Url},
 
 };
-use crate::v1::errors::GoogleAPIError;
-use crate::v1::gemini::ResponseType;
+use crate::v1beta::errors::GoogleAPIError;
+use crate::v1beta::gemini::ResponseType;
 use crate::v1beta::gemini::Model;
 
 const VERTEX_AI_API_URL_BASE: &str = "https://{region}-aiplatform.googleapis.com/v1";
@@ -147,7 +147,7 @@ impl Url {
 }
 #[cfg(test)]
 mod tests {
-    use crate::v1::{
+    use crate::v1beta::{
         api::{Client, Url},
         gemini::{Model, ResponseType},
     };

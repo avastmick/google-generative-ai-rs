@@ -98,6 +98,17 @@ pub struct Content {
     pub parts: Vec<Part>,
 }
 #[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct SystemInstructionContent {
+    #[serde(default)]
+    pub parts: Vec<SystemInstructionPart>,
+}
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SystemInstructionPart {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub text: Option<String>,
+}
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Part {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -185,14 +196,12 @@ pub enum Role {
 pub mod request {
     use serde::{Deserialize, Serialize};
 
-    use super::{
-        safety::{HarmBlockThreshold, HarmCategory},
-        Content,
-    };
+    use super::{safety::{HarmBlockThreshold, HarmCategory}, Content, SystemInstructionContent};
 
     /// Holds the data to be used for a specific text request
     #[derive(Debug, Clone, Deserialize, Serialize)]
     pub struct Request {
+
         pub contents: Vec<Content>,
         #[serde(skip_serializing_if = "Vec::is_empty")]
         pub tools: Vec<Tools>,
@@ -202,6 +211,9 @@ pub mod request {
         #[serde(skip_serializing_if = "Option::is_none")]
         #[serde(default, rename = "generationConfig")]
         pub generation_config: Option<GenerationConfig>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        #[serde(default, rename = "system_instruction")]
+        pub system_instruction: Option<SystemInstructionContent>,
     }
     impl Request {
         /// Gets the total character count of the prompt.

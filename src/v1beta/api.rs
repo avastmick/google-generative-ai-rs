@@ -9,9 +9,9 @@ use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::Mutex;
 
-use crate::v1::errors::GoogleAPIError;
-use crate::v1::gemini::request::Request;
-use crate::v1::gemini::response::GeminiResponse;
+use crate::v1beta::errors::GoogleAPIError;
+use crate::v1beta::gemini::request::Request;
+use crate::v1beta::gemini::response::GeminiResponse;
 use crate::v1beta::gemini::Model;
 
 use super::gemini::response::{StreamedGeminiResponse, TokenCount};
@@ -46,7 +46,7 @@ impl PostResult {
         }
     }
 }
-use crate::v1::gemini::ResponseType;
+use crate::v1beta::gemini::ResponseType;
 /// Manages the specific API connection
 pub struct Client {
     pub url: String,
@@ -152,7 +152,7 @@ impl Client {
             Ok(response) => match response.status() {
                 reqwest::StatusCode::OK => Ok(response.json::<GeminiResponse>().await.map_err(|e|GoogleAPIError {
                 message: format!(
-                        "Failed to deserialize API response into v1::gemini::response::GeminiResponse: {}",
+                        "Failed to deserialize API response into v1beta::gemini::response::GeminiResponse: {}",
                         e
                     ),
                 code: None,
@@ -296,7 +296,7 @@ impl Client {
             Ok(response) => match response.status() {
                 reqwest::StatusCode::OK => Ok(response.json::<TokenCount>().await.map_err(|e|GoogleAPIError {
                 message: format!(
-                        "Failed to deserialize API response into v1::gemini::response::TokenCount: {}",
+                        "Failed to deserialize API response into v1beta::gemini::response::TokenCount: {}",
                         e
                     ),
                 code: None,
@@ -334,7 +334,7 @@ impl Client {
                         .await
                         .map_err(|e| GoogleAPIError {
                             message: format!(
-                        "Failed to deserialize API response into v1::gemini::ModelInformation: {}",
+                        "Failed to deserialize API response into v1beta::gemini::ModelInformation: {}",
                         e
                     ),
                             code: None,
@@ -362,7 +362,7 @@ impl Client {
                         .await
                         .map_err(|e| GoogleAPIError {
                             message: format!(
-                        "Failed to deserialize API response into Vec<v1::gemini::ModelInformationList>: {}",
+                        "Failed to deserialize API response into Vec<v1beta::gemini::ModelInformationList>: {}",
                         e
                     ),
                         code: None,
