@@ -2,13 +2,10 @@
 use gcp_auth::AuthenticationManager;
 use std::fmt;
 
-use super::{
-    api::{Client, Url},
-
-};
+use super::api::{Client, Url};
 use crate::v1beta::errors::GoogleAPIError;
-use crate::v1beta::gemini::ResponseType;
 use crate::v1beta::gemini::Model;
+use crate::v1beta::gemini::ResponseType;
 
 const VERTEX_AI_API_URL_BASE: &str = "https://{region}-aiplatform.googleapis.com/v1";
 const GCP_API_AUTH_SCOPE: &str = "https://www.googleapis.com/auth/cloud-platform";

@@ -85,7 +85,7 @@ impl fmt::Display for Model {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Model::GeminiPro => write!(f, "gemini-1.0-pro-latest"),
-            Model::Gemini1_5Pro=> write!(f, "gemini-1.5-pro-latest"),
+            Model::Gemini1_5Pro => write!(f, "gemini-1.5-pro-latest"),
             Model::GeminiProVision => write!(f, "gemini-pro-vision"),
             // TODO Model::Embedding001 => write!(f, "embedding-001"),
         }
@@ -196,12 +196,14 @@ pub enum Role {
 pub mod request {
     use serde::{Deserialize, Serialize};
 
-    use super::{safety::{HarmBlockThreshold, HarmCategory}, Content, SystemInstructionContent};
+    use super::{
+        safety::{HarmBlockThreshold, HarmCategory},
+        Content, SystemInstructionContent,
+    };
 
     /// Holds the data to be used for a specific text request
     #[derive(Debug, Clone, Deserialize, Serialize)]
     pub struct Request {
-
         pub contents: Vec<Content>,
         #[serde(skip_serializing_if = "Vec::is_empty")]
         pub tools: Vec<Tools>,
