@@ -8,8 +8,6 @@ The goal is to emulate the [Google AI Python SDK](https://github.com/google/gene
 
 The initial focus will be on the [newer Gemini models](https://blog.google/technology/ai/google-gemini-ai/), but the more stable and mature models will hopefully also be supported soon.
 
-⚠️ Warning: initial working out; it will change very frequently. ⚠️
-
 ## Usage
 
 Start point, gain familiarity with Google's Gemini generative AI.
@@ -30,7 +28,7 @@ Please see [contributing](CONTRIBUTING.md) for the rules; they are standard thou
 
 I do my best to release working code.
 
-Status today is: *"Happy path for both public and Vertex AI endpoints work for Gemini, but some things may be fragile."*
+Status today is: *"Happy path for both public and Vertex AI endpoints work for Gemini."*
 
 ## Outline tasks
 
