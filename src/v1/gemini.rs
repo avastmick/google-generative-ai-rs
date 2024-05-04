@@ -103,21 +103,6 @@ pub struct Content {
     pub parts: Vec<Part>,
 }
 
-#[cfg(feature = "beta")]
-#[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct SystemInstructionContent {
-    #[serde(default)]
-    pub parts: Vec<SystemInstructionPart>,
-}
-
-#[cfg(feature = "beta")]
-#[derive(Debug, Clone, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct SystemInstructionPart {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub text: Option<String>,
-}
-
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Part {
@@ -211,9 +196,6 @@ pub mod request {
         Content,
     };
 
-    #[cfg(feature = "beta")]
-    use super::SystemInstructionContent;
-
     /// Holds the data to be used for a specific text request
     #[derive(Debug, Clone, Deserialize, Serialize)]
     pub struct Request {
@@ -229,7 +211,7 @@ pub mod request {
 
         #[cfg(feature = "beta")]
         #[serde(skip_serializing_if = "Option::is_none")]
-        #[serde(default, rename = "systemInstruction")]
+        #[serde(default, rename = "system_instruction")]
         pub system_instruction: Option<SystemInstructionContent>,
     }
     impl Request {
@@ -330,6 +312,24 @@ pub mod request {
         pub candidate_count: Option<i32>,
         pub max_output_tokens: Option<i32>,
         pub stop_sequences: Option<Vec<String>>,
+
+        #[cfg(feature = "beta")]
+        pub response_mime_type: Option<String>,
+    }
+
+    #[cfg(feature = "beta")]
+    #[derive(Debug, Clone, Deserialize, Serialize)]
+    pub struct SystemInstructionContent {
+        #[serde(default)]
+        pub parts: Vec<SystemInstructionPart>,
+    }
+
+    #[cfg(feature = "beta")]
+    #[derive(Debug, Clone, Deserialize, Serialize)]
+    #[serde(rename_all = "camelCase")]
+    pub struct SystemInstructionPart {
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub text: Option<String>,
     }
 }
 
@@ -392,8 +392,6 @@ pub mod response {
 
     impl fmt::Debug for StreamedGeminiResponse {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-            // Implement your formatting here.
-            // For example:
             write!(f, "StreamedGeminiResponse {{ /* stream values */ }}")
         }
     }

@@ -75,6 +75,7 @@ impl Client {
             response_type: ResponseType::GenerateContent,
         }
     }
+
     /// Creates a default new public API client for a specified response type.
     pub fn new_from_response_type(response_type: ResponseType, api_key: String) -> Self {
         let url = Url::new(&Model::default(), api_key, &response_type);
@@ -86,6 +87,7 @@ impl Client {
             response_type,
         }
     }
+
     /// Create a new public API client for a specified model.
     pub fn new_from_model(model: Model, api_key: String) -> Self {
         let url = Url::new(&model, api_key, &ResponseType::GenerateContent);
@@ -97,6 +99,7 @@ impl Client {
             response_type: ResponseType::GenerateContent,
         }
     }
+
     /// Create a new public API client for a specified model.
     pub fn new_from_model_response_type(
         model: Model,
@@ -271,7 +274,8 @@ impl Client {
     ) -> Result<reqwest::Response, reqwest::Error> {
         let mut request_builder = client
             .post(&self.url)
-            .header(reqwest::header::USER_AGENT, env!("CARGO_CRATE_NAME"));
+            .header(reqwest::header::USER_AGENT, env!("CARGO_CRATE_NAME"))
+            .header(reqwest::header::CONTENT_TYPE, "application/json");
 
         // If a GCP authn token is provided, use it
         if let Some(token) = authn_token {
