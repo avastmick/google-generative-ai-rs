@@ -77,6 +77,8 @@ pub struct ModelInformationList {
 pub enum Model {
     #[default]
     GeminiPro,
+    #[cfg(feature = "beta")]
+    Gemini1_5Pro,
     GeminiProVision,
     // TODO Embedding001
 }
@@ -84,17 +86,38 @@ impl fmt::Display for Model {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Model::GeminiPro => write!(f, "gemini-pro"),
+
+            #[cfg(feature = "beta")]
+            Model::Gemini1_5Pro => write!(f, "gemini-1.5-pro-latest"),
+
             Model::GeminiProVision => write!(f, "gemini-pro-vision"),
             // TODO Model::Embedding001 => write!(f, "embedding-001"),
         }
     }
 }
+
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Content {
     pub role: Role,
     #[serde(default)]
     pub parts: Vec<Part>,
 }
+
+#[cfg(feature = "beta")]
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct SystemInstructionContent {
+    #[serde(default)]
+    pub parts: Vec<SystemInstructionPart>,
+}
+
+#[cfg(feature = "beta")]
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SystemInstructionPart {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub text: Option<String>,
+}
+
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Part {
@@ -188,6 +211,9 @@ pub mod request {
         Content,
     };
 
+    #[cfg(feature = "beta")]
+    use super::SystemInstructionContent;
+
     /// Holds the data to be used for a specific text request
     #[derive(Debug, Clone, Deserialize, Serialize)]
     pub struct Request {
@@ -200,8 +226,34 @@ pub mod request {
         #[serde(skip_serializing_if = "Option::is_none")]
         #[serde(default, rename = "generationConfig")]
         pub generation_config: Option<GenerationConfig>,
+
+        #[cfg(feature = "beta")]
+        #[serde(skip_serializing_if = "Option::is_none")]
+        #[serde(default, rename = "systemInstruction")]
+        pub system_instruction: Option<SystemInstructionContent>,
     }
     impl Request {
+        pub fn new(
+            contents: Vec<Content>,
+            tools: Vec<Tools>,
+            safety_settings: Vec<SafetySettings>,
+            generation_config: Option<GenerationConfig>,
+        ) -> Self {
+            Request {
+                contents,
+                tools,
+                safety_settings,
+                generation_config,
+                #[cfg(feature = "beta")]
+                system_instruction: None,
+            }
+        }
+
+        #[cfg(feature = "beta")]
+        pub fn set_system_instruction(&mut self, instruction: SystemInstructionContent) {
+            self.system_instruction = Some(instruction);
+        }
+
         /// Gets the total character count of the prompt.
         /// As per the Gemini API, "Text input is charged by every 1,000 characters of input (prompt).
         ///     Characters are counted by UTF-8 code points and white space is excluded from the count."
