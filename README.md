@@ -1,7 +1,6 @@
 # Google Generative AI API client (unofficial)
 
 [![Rust Check](https://github.com/avastmick/google-generative-ai-rs/actions/workflows/rust-check.yml/badge.svg)](https://github.com/avastmick/google-generative-ai-rs/actions/workflows/rust-check.yml)
-
 An unofficial rust-based client library to interact with the Google generative AI API.
 
 The goal is to emulate the [Google AI Python SDK](https://github.com/google/generative-ai-python) but in Rust.
@@ -25,6 +24,20 @@ Yes, please!! Create a fork and branch, make your contribution, and raise a PR.
 Please see [contributing](CONTRIBUTING.md) for the rules; they are standard though.
 
 ## Work status
+
+## Potentially Breaking Changes
+
+Version `0.3.0` may lead to breaking changes. This version adds in some `beta` features and I have now added a feature flag to enable these.
+
+```
+google-generative-ai-rs = { version = "0.3.0", features = ["beta"] }
+```
+
+Using the `beta` feature will enable the following:
+
+- `gemini-1.5-pro-latest`
+- system instructions
+- `json_mode`
 
 I do my best to release working code.
 

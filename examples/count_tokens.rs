@@ -35,6 +35,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         tools: vec![],
         safety_settings: vec![],
         generation_config: None,
+
+        #[cfg(feature = "beta")]
+        system_instruction: None,
     };
 
     let response = client.post(30, &txt_request).await?;
