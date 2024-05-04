@@ -25,6 +25,20 @@ Please see [contributing](CONTRIBUTING.md) for the rules; they are standard thou
 
 ## Work status
 
+## Potentially Breaking Changes
+
+Version `0.3.0` may lead to breaking changes. This version adds in some `beta` features and I have now added a feature flag to enable these.
+
+```
+google-generative-ai-rs = { version = "0.3.0", features = ["beta"] }
+```
+
+Using the `beta` feature will enable the following:
+
+- `gemini-1.5-pro-latest`
+- system instructions
+- `json_mode`
+
 I do my best to release working code.
 
 Status today is: *"Happy path for both public and Vertex AI endpoints work for Gemini."*
