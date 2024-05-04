@@ -17,6 +17,10 @@ use crate::v1::gemini::Model;
 use super::gemini::response::{StreamedGeminiResponse, TokenCount};
 use super::gemini::{ModelInformation, ModelInformationList, ResponseType};
 
+#[cfg(feature = "beta")]
+const PUBLIC_API_URL_BASE: &str = "https://generativelanguage.googleapis.com/v1beta";
+
+#[cfg(not(feature = "beta"))]
 const PUBLIC_API_URL_BASE: &str = "https://generativelanguage.googleapis.com/v1";
 
 /// Enables a streamed or non-streamed response to be returned from the API.

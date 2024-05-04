@@ -9,6 +9,7 @@ use super::{
 use crate::v1::errors::GoogleAPIError;
 
 const VERTEX_AI_API_URL_BASE: &str = "https://{region}-aiplatform.googleapis.com/v1";
+
 const GCP_API_AUTH_SCOPE: &str = "https://www.googleapis.com/auth/cloud-platform";
 
 impl Client {
