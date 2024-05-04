@@ -397,7 +397,8 @@ pub mod response {
     #[derive(Debug, Clone, Deserialize)]
     #[serde(rename_all = "camelCase")]
     pub struct UsageMetadata {
-        pub total_token_count: u64,
+        pub prompt_token_count: u64,
+        pub candidates_token_count: u64,
     }
     #[derive(Debug, Clone, Deserialize)]
     pub struct PromptFeedback {
