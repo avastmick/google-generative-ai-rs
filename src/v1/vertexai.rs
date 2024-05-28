@@ -1,6 +1,5 @@
 //! Contains logic and types specific to the Vertex AI endpoint (opposed to the public Gemini API endpoint)
-use gcp_auth::AuthenticationManager;
-use std::fmt;
+use std::{fmt, sync::Arc};
 
 use super::{
     api::{Client, Url},
@@ -80,23 +79,16 @@ impl Client {
         Ok(token_option)
     }
     /// Gets a GCP authn token.
-    /// See [`AuthenticationManager::new`](https://docs.rs/gcp-auth/0.1.0/gcp_auth/struct.AuthenticationManager.html) for details of approach.
-    async fn get_gcp_authn_token(&self) -> Result<gcp_auth::Token, GoogleAPIError> {
-        let authentication_manager =
-            AuthenticationManager::new()
-                .await
-                .map_err(|e| GoogleAPIError {
-                    message: format!("Failed to create AuthenticationManager: {}", e),
-                    code: None,
-                })?;
+    async fn get_gcp_authn_token(&self) -> Result<Arc<gcp_auth::Token>, GoogleAPIError> {
+        let provider = gcp_auth::provider().await.map_err(|e| GoogleAPIError {
+            message: format!("Failed to create AuthenticationManager: {}", e),
+            code: None,
+        })?;
         let scopes = &[GCP_API_AUTH_SCOPE];
-        let token = authentication_manager
-            .get_token(scopes)
-            .await
-            .map_err(|e| GoogleAPIError {
-                message: format!("Failed to generate authentication token: {}", e),
-                code: None,
-            })?;
+        let token = provider.token(scopes).await.map_err(|e| GoogleAPIError {
+            message: format!("Failed to generate authentication token: {}", e),
+            code: None,
+        })?;
         Ok(token)
     }
 }
