@@ -78,6 +78,7 @@ pub enum Model {
     #[default]
     GeminiPro,
     #[cfg(feature = "beta")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "beta")))]
     Gemini1_5Pro,
     GeminiProVision,
     // TODO Embedding001
@@ -210,6 +211,7 @@ pub mod request {
         pub generation_config: Option<GenerationConfig>,
 
         #[cfg(feature = "beta")]
+        #[cfg_attr(docsrs, doc(cfg(feature = "beta")))]
         #[serde(skip_serializing_if = "Option::is_none")]
         #[serde(default, rename = "system_instruction")]
         pub system_instruction: Option<SystemInstructionContent>,
@@ -232,6 +234,7 @@ pub mod request {
         }
 
         #[cfg(feature = "beta")]
+        #[cfg_attr(docsrs, doc(cfg(feature = "beta")))]
         pub fn set_system_instruction(&mut self, instruction: SystemInstructionContent) {
             self.system_instruction = Some(instruction);
         }
@@ -314,10 +317,12 @@ pub mod request {
         pub stop_sequences: Option<Vec<String>>,
 
         #[cfg(feature = "beta")]
+        #[cfg_attr(docsrs, doc(cfg(feature = "beta")))]
         pub response_mime_type: Option<String>,
     }
 
     #[cfg(feature = "beta")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "beta")))]
     #[derive(Debug, Clone, Deserialize, Serialize)]
     pub struct SystemInstructionContent {
         #[serde(default)]
@@ -325,6 +330,7 @@ pub mod request {
     }
 
     #[cfg(feature = "beta")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "beta")))]
     #[derive(Debug, Clone, Deserialize, Serialize)]
     #[serde(rename_all = "camelCase")]
     pub struct SystemInstructionPart {
