@@ -2,6 +2,7 @@
 use std::env;
 
 use google_generative_ai_rs::v1::gemini::request::GenerationConfig;
+
 #[cfg(feature = "beta")]
 use google_generative_ai_rs::v1::{
     api::Client,
