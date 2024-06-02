@@ -1,6 +1,7 @@
 //! Manages the interaction with the REST API for the Gemini API.
 use futures::prelude::*;
 use futures::stream::StreamExt;
+use reqwest::StatusCode;
 use reqwest_streams::error::StreamBodyError;
 use reqwest_streams::*;
 use serde_json;
@@ -14,7 +15,7 @@ use crate::v1::gemini::request::Request;
 use crate::v1::gemini::response::GeminiResponse;
 use crate::v1::gemini::Model;
 
-use super::gemini::response::{StreamedGeminiResponse, TokenCount};
+use super::gemini::response::{GeminiErrorResponse, StreamedGeminiResponse, TokenCount};
 use super::gemini::{ModelInformation, ModelInformationList, ResponseType};
 
 #[cfg(feature = "beta")]
@@ -155,20 +156,32 @@ impl Client {
             .get_post_response(client, api_request, token_option)
             .await;
 
-        match result {
-            Ok(response) => match response.status() {
-                reqwest::StatusCode::OK => Ok(response.json::<GeminiResponse>().await.map_err(|e|GoogleAPIError {
-                message: format!(
-                        "Failed to deserialize API response into v1::gemini::response::GeminiResponse: {}",
-                        e
-                    ),
-                code: None,
-            })?),
-                _ => Err(self.new_error_from_status_code(response.status())),
-            },
-            Err(e) => Err(self.new_error_from_reqwest_error(e)),
+        if let Ok(result) = result {
+            match result.status() {
+                reqwest::StatusCode::OK => {
+                    Ok(result.json::<GeminiResponse>().await.map_err(|e|GoogleAPIError {
+                    message: format!(
+                            "Failed to deserialize API response into v1::gemini::response::GeminiResponse: {}",
+                            e
+                        ),
+                    code: None,
+                    })?)
+                },
+                _ => {
+                    let status = result.status();
+                    
+                    match result.json::<GeminiErrorResponse>().await {
+                        Ok(GeminiErrorResponse::Error { message, .. }) => Err(self.new_error_from_api_message(status, message)),
+                        Err(_) => Err(self.new_error_from_status_code(status)),
+                    }
+                },
+            }
+        } else {
+            Err(self.new_error_from_reqwest_error(result.unwrap_err()))
         }
+            
     }
+
     // Define the function that accepts the stream and the consumer
     /// A streamed post request
     async fn get_streamed_post_result(
@@ -410,6 +423,17 @@ impl Client {
             code: Some(code),
         }
     }
+
+    /// Creates a new error from a status code.
+    fn new_error_from_api_message(&self, code: StatusCode, message: String) -> GoogleAPIError {
+        let message = format!("API message: {message}.");
+
+        GoogleAPIError {
+            message,
+            code: Some(code),
+        }
+    }
+
     /// Creates a new error from a reqwest error.
     fn new_error_from_reqwest_error(&self, mut e: reqwest::Error) -> GoogleAPIError {
         if let Some(url) = e.url_mut() {

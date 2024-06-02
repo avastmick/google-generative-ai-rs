@@ -425,6 +425,16 @@ pub mod response {
         pub prompt_feedback: Option<PromptFeedback>,
         pub usage_metadata: Option<UsageMetadata>,
     }
+    #[derive(Debug, Clone, Deserialize)]
+    #[serde(rename_all = "camelCase")]
+    pub enum GeminiErrorResponse {
+        Error {
+            code: u16,
+            message: String,
+            status: String,
+        }
+    }
+
     impl GeminiResponse {
         /// Returns the total character count of the response as per the Gemini API.
         pub fn get_response_character_count(&self) -> usize {
