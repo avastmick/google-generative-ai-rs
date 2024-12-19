@@ -179,7 +179,6 @@ impl Client {
         } else {
             Err(self.new_error_from_reqwest_error(result.unwrap_err()))
         }
-            
     }
 
     // Define the function that accepts the stream and the consumer

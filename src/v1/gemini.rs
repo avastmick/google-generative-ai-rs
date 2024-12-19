@@ -81,6 +81,7 @@ pub enum Model {
     #[cfg_attr(docsrs, doc(cfg(feature = "beta")))]
     Gemini1_5Pro,
     GeminiProVision,
+    Custom(String),
     // TODO Embedding001
 }
 impl fmt::Display for Model {
@@ -92,6 +93,8 @@ impl fmt::Display for Model {
             Model::Gemini1_5Pro => write!(f, "gemini-1.5-pro-latest"),
 
             Model::GeminiProVision => write!(f, "gemini-pro-vision"),
+
+            Model::Custom(name) => write!(f, "{}", name),
             // TODO Model::Embedding001 => write!(f, "embedding-001"),
         }
     }
@@ -432,7 +435,7 @@ pub mod response {
             code: u16,
             message: String,
             status: String,
-        }
+        },
     }
 
     impl GeminiResponse {
