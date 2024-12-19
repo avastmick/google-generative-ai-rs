@@ -194,6 +194,7 @@ pub enum Role {
 /// See https://cloud.google.com/vertex-ai/docs/generative-ai/model-reference/gemini
 pub mod request {
     use serde::{Deserialize, Serialize};
+    use serde_json::Value;
 
     use super::{
         safety::{HarmBlockThreshold, HarmCategory},
@@ -322,6 +323,10 @@ pub mod request {
         #[cfg(feature = "beta")]
         #[cfg_attr(docsrs, doc(cfg(feature = "beta")))]
         pub response_mime_type: Option<String>,
+
+        #[cfg(feature = "beta")]
+        #[cfg_attr(docsrs, doc(cfg(feature = "beta")))]
+        pub response_schema: Option<Value>,
     }
 
     #[cfg(feature = "beta")]
