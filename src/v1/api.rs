@@ -169,7 +169,7 @@ impl Client {
                 },
                 _ => {
                     let status = result.status();
-                    
+
                     match result.json::<GeminiErrorResponse>().await {
                         Ok(GeminiErrorResponse::Error { message, .. }) => Err(self.new_error_from_api_message(status, message)),
                         Err(_) => Err(self.new_error_from_status_code(status)),
