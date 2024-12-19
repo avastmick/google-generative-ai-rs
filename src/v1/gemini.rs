@@ -466,6 +466,7 @@ pub mod response {
         pub content: Content,
         pub finish_reason: Option<String>,
         pub index: Option<i32>,
+        #[serde(default)]
         pub safety_ratings: Vec<SafetyRating>,
     }
     #[derive(Debug, Clone, Deserialize)]
