@@ -11,8 +11,8 @@ impl fmt::Display for GoogleAPIError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "GoogleAPIError - code: {} error: {:?}",
-            self.message, self.code
+            "GoogleAPIError - code: {:?} error: {}",
+            self.code, self.message
         )
     }
 }

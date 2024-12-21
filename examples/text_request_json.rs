@@ -62,6 +62,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 max_output_tokens: None,
                 stop_sequences: None,
                 response_mime_type: Some("application/json".to_string()),
+                response_schema: None,
             }),
 
             system_instruction: None,
