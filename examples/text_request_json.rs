@@ -1,6 +1,7 @@
 #[cfg(feature = "beta")]
 use std::env;
 
+#[cfg(feature = "beta")]
 use google_generative_ai_rs::v1::gemini::request::GenerationConfig;
 
 #[cfg(feature = "beta")]

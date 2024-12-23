@@ -15,9 +15,8 @@ Cargo.lock
 
 # Sensitive or local environment variables
 .env
+.envrc
 
 # Local test files
 request.json
 
-# Added by cargo
-/target

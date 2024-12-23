@@ -405,6 +405,7 @@ impl Client {
     ) -> Result<GeminiResponse, serde_json::error::Error> {
         serde_json::from_value(json_value.clone())
     }
+
     fn get_reqwest_client(&self, timeout: u64) -> Result<reqwest::Client, GoogleAPIError> {
         let client: reqwest::Client = reqwest::Client::builder()
             .timeout(Duration::from_secs(timeout))

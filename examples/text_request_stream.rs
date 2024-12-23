@@ -25,7 +25,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Either run as a standard text request or a stream generate content request
     let client = Client::new_from_model_response_type(
-        google_generative_ai_rs::v1::gemini::Model::GeminiPro,
+        google_generative_ai_rs::v1::gemini::Model::Gemini1_0Pro,
         token.clone(),
         ResponseType::StreamGenerateContent,
     );

@@ -5,7 +5,6 @@ An unofficial rust-based client library to interact with the Google generative A
 
 The goal is to emulate the [Google AI Python SDK](https://github.com/google/generative-ai-python) but in Rust.
 
-The initial focus will be on the [newer Gemini models](https://blog.google/technology/ai/google-gemini-ai/), but the more stable and mature models will hopefully also be supported soon.
 
 ## Usage
 
@@ -25,19 +24,23 @@ Please see [contributing](CONTRIBUTING.md) for the rules; they are standard thou
 
 ## Work status
 
-## Potentially Breaking Changes
-
-Version `0.3.0` may lead to breaking changes. This version adds in some `beta` features and I have now added a feature flag to enable these.
-
 ```
-google-generative-ai-rs = { version = "0.3.0", features = ["beta"] }
+google-generative-ai-rs = { version = "0.3.4", features = ["beta"] }
 ```
 
 Using the `beta` feature will enable the following:
 
 - `gemini-1.5-pro-latest`
+- `gemini-1.0-pro`
+- `gemini-1.5-pro-latest")`
+- `gemini-1.5-flash")`
+- `"gemini-1.5-flash-8b")`
+- `gemini-2.0-flash-exp")`
+- or custom `Model::Custom(name)`
 - system instructions
 - `json_mode`
+
+Note: `gemini-1.0-pro` is deprecated and will be unavailable from 15th February 2025.
 
 I do my best to release working code.
 
