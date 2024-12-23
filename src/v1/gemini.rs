@@ -76,26 +76,47 @@ pub struct ModelInformationList {
 #[serde(rename_all = "kebab-case")]
 pub enum Model {
     #[default]
-    GeminiPro,
+    Gemini1_0Pro,
     #[cfg(feature = "beta")]
     #[cfg_attr(docsrs, doc(cfg(feature = "beta")))]
     Gemini1_5Pro,
-    GeminiProVision,
+    #[cfg(feature = "beta")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "beta")))]
+    Gemini1_5Flash,
+    #[cfg(feature = "beta")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "beta")))]
+    Gemini1_5Flash8B,
+    #[cfg(feature = "beta")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "beta")))]
+    Gemini2_0Flash,
+    #[cfg(feature = "beta")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "beta")))]
     Custom(String),
-    // TODO Embedding001
+    // TODO: Embedding004
 }
 impl fmt::Display for Model {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Model::GeminiPro => write!(f, "gemini-pro"),
+            Model::Gemini1_0Pro => write!(f, "gemini-1.0-pro"),
 
             #[cfg(feature = "beta")]
+            #[cfg_attr(docsrs, doc(cfg(feature = "beta")))]
             Model::Gemini1_5Pro => write!(f, "gemini-1.5-pro-latest"),
+            #[cfg(feature = "beta")]
+            #[cfg_attr(docsrs, doc(cfg(feature = "beta")))]
+            Model::Gemini1_5Flash => write!(f, "gemini-1.5-flash"),
+            #[cfg(feature = "beta")]
+            #[cfg_attr(docsrs, doc(cfg(feature = "beta")))]
+            Model::Gemini1_5Flash8B => write!(f, "gemini-1.5-flash-8b"),
 
-            Model::GeminiProVision => write!(f, "gemini-pro-vision"),
+            #[cfg(feature = "beta")]
+            #[cfg_attr(docsrs, doc(cfg(feature = "beta")))]
+            Model::Gemini2_0Flash => write!(f, "gemini-2.0-flash-exp"),
 
+            #[cfg(feature = "beta")]
+            #[cfg_attr(docsrs, doc(cfg(feature = "beta")))]
             Model::Custom(name) => write!(f, "{}", name),
-            // TODO Model::Embedding001 => write!(f, "embedding-001"),
+            // TODO: Model::Embedding004 => write!(f, "text-embedding-004"),
         }
     }
 }
