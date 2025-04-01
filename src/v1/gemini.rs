@@ -55,7 +55,7 @@ pub struct ModelInformation {
     pub name: String,
     pub version: String,
     pub display_name: String,
-    pub description: String,
+    pub description: Option<String>,
     pub input_token_limit: i32,
     pub output_token_limit: i32,
     pub supported_generation_methods: Vec<String>,
