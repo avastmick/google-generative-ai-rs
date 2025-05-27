@@ -111,7 +111,7 @@ impl fmt::Display for Model {
 
             #[cfg(feature = "beta")]
             #[cfg_attr(docsrs, doc(cfg(feature = "beta")))]
-            Model::Gemini2_0Flash => write!(f, "gemini-2.0-flash-exp"),
+            Model::Gemini2_0Flash => write!(f, "gemini-2.0-flash"),
 
             #[cfg(feature = "beta")]
             #[cfg_attr(docsrs, doc(cfg(feature = "beta")))]
