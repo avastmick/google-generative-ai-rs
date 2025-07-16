@@ -1,5 +1,10 @@
 # Google Generative AI API client (unofficial)
 
+> [!CAUTION]
+> NO LONGER MAINTAINED.
+
+> Gemini (Public and Vertex) is now accessible and compatible with the [OpenAI API format](https://ai.google.dev/gemini-api/docs/openai), there is little point in dusting this off - Thanks. 
+
 [![Rust Check](https://github.com/avastmick/google-generative-ai-rs/actions/workflows/rust-check.yml/badge.svg)](https://github.com/avastmick/google-generative-ai-rs/actions/workflows/rust-check.yml)
 An unofficial rust-based client library to interact with the Google generative AI API.
 
